@@ -9,13 +9,13 @@ def pair():
     current_network = get_current_network(interface)
     if not current_network:
         print("Could not retrieve the current network. Exiting...")
-        return
+        return False  # Return False on failure
 
     print(f"Currently connected to: {current_network}")
 
     if not iwlist_security_check(interface, current_network):
         print("Security scan failed. Aborting connection.")
-        return
+        return False  # Return False on failure
     
     # Get the current device's IP address
     current_device_ip = subprocess.getoutput("hostname -I | awk '{print $1}'").strip()
@@ -31,10 +31,12 @@ def pair():
         # Verify the network devices
         if verify_network_devices(current_device_ip, watch_ip):
             if connect_to_device(watch_ip):
-                return  # Show menu after successful connection
+                return True  # Successfully connected
             else:
                 print("Failed to connect to the device.")
         else:
             print("Failed network verification. Aborting connection.")
     else:
         print("Failed to pair with the device.")
+    
+    return False  # Return False if any step failed
