@@ -2,9 +2,7 @@ import argparse
 
 from app.logs.logger_config import logger
 
-# from app.preacquisition import {
-#     pair_device
-# }
+from app.preacquisition import pair
 
 from app.acquisition.dumpsys import *
 
@@ -78,6 +76,9 @@ def main():
         logger.info(f"Using network interface: {network_interface}")
         
         # Connect and pair
+        if not pair.pair():  # Check if pairing was successful
+            print("Connection aborted. Exiting...")
+            return  # Exit if not successful
 
     elif option.emulated:
         emulated = True
@@ -90,7 +91,6 @@ def main():
 
     # Display menu after connection established
     display_menu()
-
 
 if __name__ == "__main__":
     main()
