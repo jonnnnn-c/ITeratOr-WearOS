@@ -1,29 +1,5 @@
 import subprocess
 import re
-import platform
-import sys
-import os
-import time
-
-def install_requirements():
-    """Check and install required packages."""
-    try:
-        subprocess.run(['iwlist', '--version'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    except subprocess.CalledProcessError:
-        print("iwlist is not installed. Installing...")
-        if platform.system() == "Linux":
-            if subprocess.call(['which', 'apt']) == 0:
-                subprocess.run(['sudo', 'apt', 'install', '-y', 'wireless-tools'], check=True)
-            elif subprocess.call(['which', 'dnf']) == 0:
-                subprocess.run(['sudo', 'dnf', 'install', '-y', 'wireless-tools'], check=True)
-            elif subprocess.call(['which', 'pacman']) == 0:
-                subprocess.run(['sudo', 'pacman', '-S', '--noconfirm', 'wireless-tools'], check=True)
-            else:
-                print("Unsupported package manager. Please install 'wireless-tools' manually.")
-                sys.exit(1)
-        else:
-            print("This script is intended for Linux. Please install 'wireless-tools' manually.")
-            sys.exit(1)
 
 def disconnect_all_devices():
     """Disconnect all ADB devices."""
