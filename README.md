@@ -65,3 +65,13 @@
     # Start from snapshot
     emulator -avd <AVD_NAME> -writable-system -snapshot <SNAPSHOT_NAME e.g. snap_1>
     ```
+
+## Setup Wireless Debugging (on physical & emulated) 
+- Enable Developer Mode
+    ```
+    Settings > System > About > Versions > Build Number (press 7 times)
+    ```
+- Enable Wireless Debugging
+    ```
+    Settings > Developer options > Wireless debugging 
+    ```
