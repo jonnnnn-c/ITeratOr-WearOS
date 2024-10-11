@@ -76,8 +76,8 @@ def main():
         logger.info(f"Using network interface: {network_interface}")
         
         # Connect and pair
-        if not pair.pair():  # Check if pairing was successful
-            print("Connection aborted. Exiting...")
+        if not pair.pair(network_interface):  # Check if pairing was successful
+            logger.error("Connection aborted. Exiting...")
             return  # Exit if not successful
 
     elif option.emulated:

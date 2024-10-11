@@ -1,20 +1,18 @@
 from app.logs.logger_config import *
 from app.preacquisition.connect import *
 
-def pair():
-    print("Pairing to Wear OS Smartwatch")
-    
-    interface = 'wlan0'  # Change this to your actual wireless interface if different
+def pair(network_interface):
+    logger.info("Pairing to WearOS Smartwatch")
 
-    current_network = get_current_network(interface)
+    current_network = get_current_network(network_interface)
     if not current_network:
-        print("Could not retrieve the current network. Exiting...")
+        logger.error("Could not retrieve the current network. Exiting...")
         return False  # Return False on failure
 
-    print(f"Currently connected to: {current_network}")
+    logger.info(f"Currently connected to: {current_network}")
 
-    if not iwlist_security_check(interface, current_network):
-        print("Security scan failed. Aborting connection.")
+    if not iwlist_security_check(network_interface, current_network):
+        logger.error("Security scan failed. Aborting connection.")
         return False  # Return False on failure
     
     # Get the current device's IP address
@@ -33,10 +31,10 @@ def pair():
             if connect_to_device(watch_ip):
                 return True  # Successfully connected
             else:
-                print("Failed to connect to the device.")
+                logger.error("Failed to connect to the device.")
         else:
-            print("Failed network verification. Aborting connection.")
+            logger.error("Failed network verification. Aborting connection.")
     else:
-        print("Failed to pair with the device.")
+        logger.error("Failed to pair with the device.")
     
     return False  # Return False if any step failed
