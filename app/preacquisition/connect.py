@@ -1,18 +1,17 @@
 import re
 import subprocess
+from app.logs.logger_config import initialize_loggers
 
-from app.logs.logger_config import (
-    initialize_loggers,
-)  # Import the logging setup function
-
+# Initialize all loggers
+loggers = initialize_loggers()
 
 def disconnect_all_devices():
     """Disconnect all ADB devices."""
     try:
         subprocess.run(['adb', 'disconnect'], check=True)
-        logger.info("All ADB devices have been disconnected.")
+        loggers["network"].info("All ADB devices have been disconnected.")
     except subprocess.CalledProcessError as e:
-        logger.error(f"Error disconnecting ADB devices: {e}")
+        loggers["network"].error(f"Error disconnecting ADB devices: {e}")
 
 def is_valid_port(port):
     """Validate that the port number is an integer within the valid range."""
@@ -168,7 +167,7 @@ def check_adb_devices():
         return devices
 
     except subprocess.CalledProcessError as e:
-        logger.error(f"Error checking ADB devices: {e}")
+        loggers["network"].error(f"Error checking ADB devices: {e}")
         return []
 
 def scan_network(interface):

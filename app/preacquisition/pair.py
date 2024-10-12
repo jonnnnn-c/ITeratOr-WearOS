@@ -1,7 +1,9 @@
-from app.logs.logger_config import (
-    initialize_loggers,
-)  # Import the logging setup function
+from app.logs.logger_config import initialize_loggers
 from app.preacquisition.connect import *
+
+# Initialize all loggers
+loggers = initialize_loggers()
+
 
 def pair(network_interface):
     logger.info("Pairing to WearOS Smartwatch")
