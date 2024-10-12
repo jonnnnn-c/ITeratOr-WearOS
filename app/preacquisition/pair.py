@@ -1,4 +1,6 @@
-from app.logs.logger_config import *
+from app.logs.logger_config import (
+    initialize_loggers,
+)  # Import the logging setup function
 from app.preacquisition.connect import *
 
 def pair(network_interface):

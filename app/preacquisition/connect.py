@@ -1,7 +1,10 @@
 import re
 import subprocess
 
-from app.logs.logger_config import *
+from app.logs.logger_config import (
+    initialize_loggers,
+)  # Import the logging setup function
+
 
 def disconnect_all_devices():
     """Disconnect all ADB devices."""
