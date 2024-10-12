@@ -1,9 +1,7 @@
 import shutil
 import subprocess
 import sys
-from app.logs.logger_config import (
-    initialize_loggers,
-)  # Import the logging setup function
+from app.logs.logger_config import initialize_loggers
 
 # Initialize all loggers
 loggers = initialize_loggers()
@@ -14,11 +12,13 @@ def run_command(command):
 
     try:
         result = subprocess.run(command, check=True, text=True, capture_output=True)
-        loggers["env_setup"].info(result.stdout)  # Log standard output to app.log
+        loggers["acquisition"].info(f"Command succeeded: {' '.join(command)}")
+        loggers["env_setup"].info(result.stdout)
+        return True
     except subprocess.CalledProcessError as e:
         loggers["env_setup"].error(f"Error while running command: {' '.join(command)}")
         loggers["env_setup"].error(e.stderr)
-        sys.exit(1)
+        return False
 
 
 def setup_required_tools():
@@ -57,3 +57,17 @@ def setup_required_tools():
             sys.exit(1)
     else:
         loggers["env_setup"].info("iwlist is already installed.")
+
+
+def enable_adb_root():
+    """Function to run 'adb root' to gain root access."""
+
+    loggers["env_setup"].info("Running 'adb root' to gain root access.")
+    success = run_command(["adb", "root"])
+
+    if success:
+        loggers["env_setup"].info("'adb root' executed successfully.")
+        return True  # Return True if the command succeeded
+    else:
+        loggers["env_setup"].error("'adb root' command failed.")
+        return False  # Return False if the command failed
