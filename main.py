@@ -1,11 +1,14 @@
 import argparse
-from app.preacquisition import pair
-from app.acquisition.dumpsys import *
-from app.setup.setup_environment import setup_required_tools
+
+from app.setup.setup_environment import setup_required_tools, enable_adb_root
 from app.logs.logger_config import (
     initialize_loggers,
-    clean_output_folder,
+    clear_output_folder,
 )  # Import the logger initialization function
+
+
+from app.preacquisition import pair, connect
+from app.acquisition import dumpsys, freeze
 
 # Global variables
 emulated = None
@@ -41,11 +44,11 @@ def parser_options():
         help="Specify network interface for physical watch (default is wlan0)",
     )
 
-    # Add an optional argument to clean log files
+    # Add an optional argument to clear log files
     parser.add_argument(
-        "--clean-logs",
+        "--clear-logs",
         action="store_true",
-        help="Clean all log files in the output folder",
+        help="Clear all log files in the output folder",
     )
 
     return parser.parse_args()
@@ -54,6 +57,7 @@ def parser_options():
 def display_menu(device_name, choice=None):
     """Display the main menu for the user after successful connection."""
 
+    # TODO: maybe add an option to disable certain commands for auto run (e.g. freeze)
     menu_options = [
         "1. Auto run acquisition commands",
         "2. Manually run acquisition commands",
@@ -67,7 +71,7 @@ def display_menu(device_name, choice=None):
 
         if choice is None:
             choice = input("\nEnter your choice: ")
-            print()   # Add an extra line for spacing
+            print()  # Add an extra line for spacing
 
         # Call the appropriate function based on the user's choice
         if choice == "1":
@@ -100,8 +104,11 @@ def print_boxed_menu(options):
 
 def run_auto_acquisition():
     """Run the auto acquisition commands."""
-    loggers["dumpsys"].info("Running Dumpsys...")
-    dump_watch_data()
+    # loggers["dumpsys"].info("Running Dumpsys...")
+    # dump_watch_data()
+
+    loggers["acquisition"].info("Running freezing commands")
+    freeze.freeze_device()
 
 
 def run_manual_acquisition():
@@ -122,7 +129,7 @@ def download_retrieved_content():
 def exit_program():
     """Exit the application."""
     loggers["app"].info("Exiting the application...")
-    disconnect_all_devices()  # Assuming this exists in your codebase
+    connect.disconnect_all_devices()  # Assuming this exists in your codebase
 
 
 def main():
@@ -131,10 +138,10 @@ def main():
     # Parse command-line options
     option = parser_options()
 
-    # Clean log files if the option is set
-    if option.clean_logs:
-        clean_output_folder()
-        loggers["app"].info("Log cleaning operation completed.")
+    # Clear log files if the option is set
+    if option.clear_logs:
+        clear_output_folder()
+        loggers["app"].warning("Log clearing operation completed.")
 
     # Set up environment (install necessary tools like adb, iwlist)
     setup_required_tools()
@@ -157,7 +164,7 @@ def main():
 
         # No pairing needed for emulated watch
         # Check if there are any adb devices, if not quit
-        device = check_adb_devices()
+        device = connect.check_adb_devices()
 
         if len(device) < 1:
             loggers["app"].info("No device found. Exiting")
@@ -177,13 +184,22 @@ def main():
 
     # Display the main menu once the connection is established
     try:
+        # Run adb root and check if it was successful, used mainly for emulated devices
+        if enable_adb_root():
+            loggers["app"].info("Device rooted: True")
+        else:
+            loggers["app"].warning("Device rooted: False")
+            loggers["app"].warning(
+                "Device is not rooted; some commands may not work properly."
+            )
+
         loggers["app"].info(
             "To safely disconnect, select option 5 from the menu or press Ctrl+C to exit the script."
         )
         display_menu(device_name)
 
     except KeyboardInterrupt:
-        loggers["app"].error("Keyboard Interrupt: Script ended abruptly")
+        loggers["app"].warning("Keyboard Interrupt: Script ended abruptly")
         exit_program()
 
 
