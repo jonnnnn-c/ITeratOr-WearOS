@@ -5,7 +5,12 @@ import os
 log_folder = "output"
 
 # Log files (add more names if needed)
-log_files = {"app.log", "env_setup.log", "preacquisition.log", "dumpsys.log"}
+# app.log: General app activity (e.g., menu selections, user actions).
+# env_setup.log: Environment setup details (e.g., ADB present).
+# network.log: Device connection-related events (e.g., connect, pair, disconnect).
+# preacquisition.log: Network security checks before acquisition.
+# acquisition.log: Actions during acquisition (e.g., memory dumps, process freezing, file extraction).
+log_files = {"app.log", "env_setup.log", "network.log", "preacquisition.log", "acquisition.log"}
 
 
 def get_logger_for_file(log_filename):
@@ -52,7 +57,7 @@ def initialize_loggers():
     return loggers
 
 
-def clean_output_folder():
+def clear_output_folder():
     """Clear the contents of all log files in the 'output' folder and reinitialize loggers."""
 
     # Check if the folder exists

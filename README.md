@@ -98,3 +98,15 @@ D.	Analysis Phase
     ```
     Settings > Developer options > Wireless debugging 
     ```
+
+## Log files
+
+The following log files, located in the 'output' folder, provide useful information about what happened when the tool ran. It captures critical details about the activities that took place during its execution, allowing us to better understand what happened at each stage.
+
+| **Log File**           | **Description**                                                   |
+|------------------------|-------------------------------------------------------------------|
+| `app.log`              | General app activity (e.g., menu selections, user actions).       |
+| `env_setup.log`        | Environment setup details (e.g., ADB present).                    |
+| `network.log`          | Device connection-related events (e.g., connect, pair, disconnect).|
+| `preacquisition.log`   | Network security checks before acquisition.                       |
+| `acquisition.log`      | Actions during acquisition (e.g., memory dumps, process freezing, file extraction). |
