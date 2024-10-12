@@ -17,7 +17,7 @@ loggers = initialize_loggers()
 
 def parser_options():
     """Parse the command-line arguments for physical or emulated device."""
-    
+
     parser = argparse.ArgumentParser(
         description="Choose between physical or emulated watch connection."
     )
@@ -51,34 +51,78 @@ def parser_options():
     return parser.parse_args()
 
 
-def display_menu(logger):
+def display_menu(device_name, choice=None):
     """Display the main menu for the user after successful connection."""
-    
+
+    menu_options = [
+        "1. Auto run acquisition commands",
+        "2. Manually run acquisition commands",
+        "3. Others",  # Placeholder for adb shell or other options
+        "4. Download contents retrieved",  # Log and adb pull
+        "5. Exit",
+    ]
+
     while True:
-        print("\nChoose an option:")
-        print("1. Run Dumpsys")
-        print("2. Another Option")
-        print("3. Exit")
+        print_boxed_menu(menu_options)
 
-        choice = input("Enter your choice: ")
+        if choice is None:
+            choice = input("\nEnter your choice: ")
+            print()   # Add an extra line for spacing
 
+        # Call the appropriate function based on the user's choice
         if choice == "1":
-            loggers["dumpsys"].info("Running Dumpsys...")
-            dump_watch_data()
-
+            run_auto_acquisition()
         elif choice == "2":
-            loggers["app"].info("You selected another option (to be implemented).")
-            print("You selected another option (to be implemented).")
-            # Add functionality for another option here
-
+            run_manual_acquisition()
         elif choice == "3":
-            loggers["app"].info("Exiting the application.")
-            disconnect_all_devices()  # Assuming this exists in your codebase
+            run_other_commands()
+        elif choice == "4":
+            download_retrieved_content()
+        elif choice == "5":
+            exit_program()
             break
-
         else:
             loggers["app"].warning("Invalid choice made by user.")
-            print("Invalid choice. Please try again.")
+
+        choice = None  # Reset to None for re-prompting
+
+
+def print_boxed_menu(options):
+    """Prints the menu inside a simple ASCII box."""
+    max_length = max(len(option) for option in options)
+    border = "+" + "-" * (max_length + 2) + "+"
+
+    print("\n" + border)
+    for option in options:
+        print(f"| {option.ljust(max_length)} |")
+    print(border)
+
+
+def run_auto_acquisition():
+    """Run the auto acquisition commands."""
+    loggers["dumpsys"].info("Running Dumpsys...")
+    dump_watch_data()
+
+
+def run_manual_acquisition():
+    """Run manual acquisition commands."""
+    loggers["app"].info("You selected manual acquisition (to be implemented).")
+
+
+def run_other_commands():
+    """Run other commands like adb shell."""
+    loggers["app"].info("Running other commands (to be implemented).")
+
+
+def download_retrieved_content():
+    """Download the contents retrieved during acquisition."""
+    loggers["app"].info("Downloading contents retrieved.")
+
+
+def exit_program():
+    """Exit the application."""
+    loggers["app"].info("Exiting the application...")
+    disconnect_all_devices()  # Assuming this exists in your codebase
 
 
 def main():
@@ -112,13 +156,35 @@ def main():
         loggers["app"].info("Selected: Emulated watch")
 
         # No pairing needed for emulated watch
+        # Check if there are any adb devices, if not quit
+        device = check_adb_devices()
+
+        if len(device) < 1:
+            loggers["app"].info("No device found. Exiting")
+            return
+
+        elif len(device) > 1:
+            loggers["app"].info("Please only have 1 android device running at one time")
+            return
+
+        else:
+            device_name = device[0]
+            loggers["app"].info(f"Emulated device chosen: {device_name}")
 
     else:
         loggers["app"].error("Invalid Option")
         return  # Exit early in case of invalid options
 
     # Display the main menu once the connection is established
-    display_menu(loggers)
+    try:
+        loggers["app"].info(
+            "To safely disconnect, select option 5 from the menu or press Ctrl+C to exit the script."
+        )
+        display_menu(device_name)
+
+    except KeyboardInterrupt:
+        loggers["app"].error("Keyboard Interrupt: Script ended abruptly")
+        exit_program()
 
 
 if __name__ == "__main__":
