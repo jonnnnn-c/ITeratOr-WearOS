@@ -1,4 +1,27 @@
 # ITeratOr
+A.	Overview
+
+    Our project consists of three phases: pre-acquisition, acquisition, and analysis. ITeratOr, our tool, manages the pre-acquisition and acquisition stages, while the analysis phase aims to enhance existing ALEAPP technology. We assume the smartwatch is already rooted due to technical constraints; otherwise, disassembly would be necessary. Additionally, we will only access the watch, which is assumed to be unlocked, without interfacing with the paired phone.
+
+B.	Pre-Acquisition Phase
+
+    Before analysis begins, the smartwatch must connect to the same network as the forensic machine. To ensure the network's security, our tool conducts a series of checks to verify connection integrity. These checks include confirming robust encryption protocols, such as WPA2-Enterprise or WPA2-Personal, the router's firmware version, and logging network activity for accountability. Moreover, our tool continuously monitors the network for unauthorized devices, particularly during on-site acquisitions, to mitigate risks of tampering or evidence destruction, such as if another device attempts to access or delete data from the watch.
+
+    Tests will be carried out on a physical WearOS watch, where two test scenarios will be simulated: one secure and one unprotected network. This aims to validate the tool’s capabilities in distinguishing between different network security and offer advice to users on possible actions if the network is insecure.
+
+C.	Acquisition Phase
+
+    To ensure data integrity, we modelled our strategy demonstrated by earlier researchers, prioritizing the capture of volatile data, such as RAM contents, first [13]. After this, we attempt to freeze and suspend all running processes to prevent unintended changes. This is done after the memory capture to avoid inadvertent memory changes. Directory hashes will be generated for all parent directories prior to performing a logical backup, establishing a baseline for the device's original state.
+
+    Once the baseline is established, the tool will extract essential artifacts, including data partition dumps, parent and its subdirectories, and user profiles from the smartwatch. For each extraction, the program generates a file or directory hash to confirm that it remains unaltered. At the end of the acquisition, log file metadata with timestamps for all executed instructions will be extracted, ensuring accountability throughout the process.
+
+    Tests will be transitioned to an emulated WearOS environment, which allows us to root the device and access additional features required by our tool. Hash value checks will be performed before and after executing commands to ensure system integrity and prevent unauthorized alterations. Artifacts acquired from our sample will be evaluated using open-source resources to ensure their validity. Additionally, artifacts will be cross-referenced with our test scenario to verify that our tool successfully extracted the appropriate artifacts.
+
+D.	Analysis Phase
+
+    In the analysis phase, we aim to enhance ALEAPP’s capabilities by developing new scripts to parse additional applications that are currently unsupported. Due to time constraints, we will prioritize parsing four popular applications from the Play Store that offer valuable insights, such as note-taking and GPS data utilities. By integrating this data into ALEAPP, we will provide analysts with a more comprehensive and actionable dataset, enabling deeper analysis of data from commonly used applications by smartwatch owners. Our objective is to augment existing analytical tools rather than create an entirely new solution.
+    
+    For testing, applications on the watch will be populated with realistic sample data to reflect actual usage patterns. Data will first be parsed into the ALEAPP GUI, where it will subsequently be accessed.
 
 
 ## How to run
