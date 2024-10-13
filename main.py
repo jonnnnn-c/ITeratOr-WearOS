@@ -59,6 +59,7 @@ def display_menu(device_name, choice=None):
 
     # TODO: maybe add an option to disable certain commands for auto run (e.g. freeze)
     menu_options = [
+    	"You are connected to "+str(device_name),
         "1. Auto run acquisition commands",
         "2. Manually run acquisition commands",
         "3. Others",  # Placeholder for adb shell or other options
@@ -196,7 +197,11 @@ def main():
         loggers["app"].info(
             "To safely disconnect, select option 5 from the menu or press Ctrl+C to exit the script."
         )
-        display_menu(device_name)
+        
+        if emulated:
+        	display_menu(device_name)
+        else:
+        	display_menu(connect.get_physical_device_name())
 
     except KeyboardInterrupt:
         loggers["app"].warning("Keyboard Interrupt: Script ended abruptly")
