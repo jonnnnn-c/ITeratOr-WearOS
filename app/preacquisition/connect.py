@@ -5,6 +5,18 @@ from app.logs.logger_config import initialize_loggers
 # Initialize all loggers
 loggers = initialize_loggers()
 
+def get_physical_device_name():
+    """Get the device name of the physical device."""
+    try:
+        # Run the adb command to get the device name
+        output = subprocess.check_output(
+            ["adb", "shell", "getprop", "ro.product.model"], text=True
+        )
+        return output.strip()  # Remove any surrounding whitespace/newlines
+    except subprocess.CalledProcessError as e:
+        loggers["preacquisition"].error(f"Failed to get device name: {e}")
+        return "Unknown Device"
+
 def disconnect_all_devices():
     """Disconnect all ADB devices."""
     try:
@@ -24,7 +36,7 @@ def get_current_network(interface):
         essid = result.stdout.strip()
         return essid if essid else None
     except subprocess.CalledProcessError as e:
-        logger.error(f"Error retrieving current network: {e}")
+        loggers["network"].error(f"Error retrieving current network: {e}")
     return None
 
 def check_firmware_version(router_ip):
@@ -44,14 +56,14 @@ def check_firmware_version(router_ip):
         match = re.search(firmware_version_pattern, output)
 
         if match:
-            logger.info(f"Router firmware version found: {match.group(0)}")
+            loggers["network"].info(f"Router firmware version found: {match.group(0)}")
             return match.group(0)  # Return the firmware version
         else:
-            logger.error("Firmware version not found in the router's webpage.")
+            loggers["network"].error("Firmware version not found in the router's webpage.")
             return None
 
     except subprocess.CalledProcessError as e:
-        logger.error(f"Error fetching router page: {e}")
+        loggers["network"].error(f"Error fetching router page: {e}")
         return None
 
 def pair_device():
@@ -65,17 +77,17 @@ def pair_device():
             if is_valid_port(port):
                 break
             else:
-                logger.error("Invalid port. Please enter a number between 1 and 65535.")
+                loggers["preacquisition"].error("Invalid port. Please enter a number between 1 and 65535.")
         else:
-            logger.error("Invalid input. Please enter a valid integer for the port.")
+            loggers["preacquisition"].error("Invalid input. Please enter a valid integer for the port.")
 
     try:
         pair_command = f"{ip_address}:{port}"
         subprocess.run(['adb', 'pair', pair_command], check=True)
-        logger.info(f"Successfully paired with device at {ip_address}.")
+        loggers["preacquisition"].info(f"Successfully paired with device at {ip_address}.")
         return True, ip_address  # Return success and IP for the next function
     except subprocess.CalledProcessError as e:
-        logger.error(f"Error pairing with device at {ip_address}: {e}")
+        loggers["preacquisition"].error(f"Error pairing with device at {ip_address}: {e}")
         return False, None  # Return failure
 
 def connect_to_device(ip_address):
@@ -86,24 +98,24 @@ def connect_to_device(ip_address):
         # Set default port if no input is given
         if port_input.strip() == "":
             port = 5555
-            logger.info("Using default port 5555.")
+            loggers["preacquisition"].info("Using default port 5555.")
             break
         elif port_input.isdigit():
             port = int(port_input)
             if is_valid_port(port):
                 break
             else:
-                logger.error("Invalid port. Please enter a number between 1 and 65535.")
+                loggers["preacquisition"].error("Invalid port. Please enter a number between 1 and 65535.")
         else:
-            logger.error("Invalid input. Please enter a valid integer for the port.")
+            loggers["preacquisition"].error("Invalid input. Please enter a valid integer for the port.")
 
     try:
         connect_command = f"{ip_address}:{port}"
         subprocess.run(['adb', 'connect', connect_command], check=True)
-        logger.info(f"Connected to device at {ip_address}.")
+        loggers["preacquisition"].info(f"Connected to device at {ip_address}.")
         return True  # Return success
     except subprocess.CalledProcessError as e:
-        logger.error(f"Error connecting to device at {ip_address}: {e}")
+        loggers["preacquisition"].error(f"Error connecting to device at {ip_address}: {e}")
         return False  # Return failure
 
 def iwlist_security_check(interface, current_network):
@@ -130,26 +142,26 @@ def iwlist_security_check(interface, current_network):
 
             if "IE: IEEE 802.11i/WPA2" in line:
                 encryption_type = "WPA2"
-                logger.info(f"Network: {current_essid}, Encryption: WPA2")
+                loggers["network"].info(f"Network: {current_essid}, Encryption: WPA2")
             elif "IE: IEEE 802.11i/WPA" in line:
                 encryption_type = "WPA"
-                logger.info(f"Network: {current_essid}, Encryption: WPA")
+                loggers["network"].info(f"Network: {current_essid}, Encryption: WPA")
             elif "IE: WPA3" in line:
                 encryption_type = "WPA3"
-                logger.info(f"Network: {current_essid}, Encryption: WPA3")
+                loggers["network"].info(f"Network: {current_essid}, Encryption: WPA3")
 
             if current_essid == current_network and secure_network_found:
-                logger.info(f"Current network {current_network} is secure with {encryption_type} encryption.")
+                loggers["network"].info(f"Current network {current_network} is secure with {encryption_type} encryption.")
                 return True
 
         if not secure_network_found:
-            logger.error("Current network not found in scan results or is not secure.")
+            loggers["network"].error("Current network not found in scan results or is not secure.")
             return False
 
         return True
 
     except subprocess.CalledProcessError as e:
-        logger.error(f"Error scanning with iwlist: {e}")
+        loggers["network"].error(f"Error scanning with iwlist: {e}")
         return False
 
 def check_adb_devices():
@@ -182,7 +194,7 @@ def scan_network(interface):
                 devices.append(match.group(1))  # Add the IP address to the list
         return devices
     except subprocess.CalledProcessError as e:
-        logger.error(f"Error scanning network: {e}")
+        loggers["network"].error(f"Error scanning network: {e}")
         return []
 
 def get_default_gateway():
@@ -193,22 +205,22 @@ def get_default_gateway():
             if 'default' in line:
                 return line.split()[2]  # The third field is the default gateway IP
     except subprocess.CalledProcessError as e:
-        logger.error(f"Error retrieving default gateway: {e}")
+        loggers["network"].error(f"Error retrieving default gateway: {e}")
     return None
 
 def verify_network_devices(current_device_ip, watch_ip):
     """Ensure the current device, smartwatch, and the default gateway are present on the network."""
     devices = scan_network('wlan0')  # Replace with actual interface if needed
-    logger.info("Devices found on the network:", devices)
+    loggers["network"].info("Devices found on the network:", devices)
     
     # Get the default gateway
     default_gateway = get_default_gateway()
-    logger.info(f"Default Gateway: {default_gateway}")
+    loggers["network"].info(f"Default Gateway: {default_gateway}")
 
     # Check if the watch IP, and default gateway are in the found devices
     if default_gateway and len(devices) == 2 and watch_ip in devices and default_gateway in devices:
-        logger.info("Only the current device, the smartwatch, and the default gateway are present on the network. Continuing...")
+        loggers["network"].info("Only the current device, the smartwatch, and the default gateway are present on the network. Continuing...")
         return True
     else:
-        logger.error("Warning: More devices found on the network or the default gateway is not present. Aborting...")
+        loggers["network"].error("Warning: More devices found on the network or the default gateway is not present. Aborting...")
         return False
