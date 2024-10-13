@@ -12,13 +12,21 @@ def run_command(command):
 
     try:
         result = subprocess.run(command, check=True, text=True, capture_output=True)
+
+        # Check for specific error messages in the output (e.g., 'adbd cannot run as root')
+        if "cannot run as root" in result.stdout:
+            loggers["env_setup"].error(f"Error in command output: {result.stdout.strip()}")
+            loggers["env_setup"].error(f"Error while running command: {' '.join(command)}")
+            return False  # Explicitly return False if we detect an error in the output
+
         loggers["acquisition"].info(f"Command succeeded: {' '.join(command)}")
         loggers["env_setup"].info(result.stdout)
-        return True
+        return True  # Return True if the command completed successfully
+
     except subprocess.CalledProcessError as e:
         loggers["env_setup"].error(f"Error while running command: {' '.join(command)}")
-        loggers["env_setup"].error(e.stderr)
-        return False
+        loggers["env_setup"].error(e.stderr)  # This will work as 'e' is defined in the 'except' block
+        return False  # Return False if an exception was raised
 
 
 def setup_required_tools():
