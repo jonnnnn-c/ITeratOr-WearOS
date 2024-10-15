@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 
 # Global variables
 log_folder = "output"
@@ -56,6 +57,8 @@ def initialize_loggers():
     }
     return loggers
 
+# Initialize all loggers
+loggers = initialize_loggers()
 
 def clear_output_folder():
     """Clear the contents of all log files in the 'output' folder and reinitialize loggers."""
@@ -67,3 +70,11 @@ def clear_output_folder():
             if os.path.isfile(file_path):
                 with open(file_path, "w"):
                     pass  # This clears the contents of the file
+                    loggers["app"].warning(f"Cleared contents within {log_file} file.")
+                
+         # Delete contents of the 'device_information' subfolder
+        device_info_folder = os.path.join(log_folder, 'device_information')
+        if os.path.exists(device_info_folder) and os.path.isdir(device_info_folder):
+            shutil.rmtree(device_info_folder)  # Delete the entire directory and its contents
+            loggers["app"].warning("Deleted the device_information folder and its contents.")
+        

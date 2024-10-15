@@ -6,9 +6,14 @@ from app.logs.logger_config import (
     clear_output_folder,
 )  # Import the logger initialization function
 
-
-from app.preacquisition import pair, connect
-from app.acquisition import dumpsys, freeze
+from app.preacquisition import (
+    pair, 
+    connect
+)
+from app.acquisition import (
+    device_information, 
+    freeze
+)
 
 # Global variables
 emulated = None
@@ -59,7 +64,8 @@ def display_menu(device_name, choice=None):
 
     # TODO: maybe add an option to disable certain commands for auto run (e.g. freeze)
     menu_options = [
-    	"You are connected to "+str(device_name),
+        f"You are connected to: {str(device_name)}",
+        "",
         "1. Auto run acquisition commands",
         "2. Manually run acquisition commands",
         "3. Others",  # Placeholder for adb shell or other options
@@ -105,11 +111,12 @@ def print_boxed_menu(options):
 
 def run_auto_acquisition():
     """Run the auto acquisition commands."""
-    # loggers["dumpsys"].info("Running Dumpsys...")
-    # dump_watch_data()
-
-    loggers["acquisition"].info("Running freezing commands")
-    freeze.freeze_device()
+    # 1
+    loggers["acquisition"].info("Running device information commands\n")
+    device_information.document_device_state()
+    
+    # loggers["acquisition"].info("Running freezing commands")
+    # freeze.freeze_device()
 
 
 def run_manual_acquisition():
@@ -194,14 +201,14 @@ def main():
                 "Device is not rooted; some commands may not work properly."
             )
 
-        loggers["app"].info(
+        loggers["app"].warning(
             "To safely disconnect, select option 5 from the menu or press Ctrl+C to exit the script."
         )
-        
+
         if emulated:
-        	display_menu(device_name)
+            display_menu(device_name)
         else:
-        	display_menu(connect.get_physical_device_name())
+            display_menu(connect.get_physical_device_name())
 
     except KeyboardInterrupt:
         loggers["app"].warning("Keyboard Interrupt: Script ended abruptly")

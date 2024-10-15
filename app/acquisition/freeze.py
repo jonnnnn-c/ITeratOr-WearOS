@@ -14,9 +14,7 @@ def run_adb_command(command):
         loggers["acquisition"].info(result.stdout)
         return True
     except subprocess.CalledProcessError as e:
-        loggers["acquisition"].error(
-            f"Error while running command: {' '.join(command)}"
-        )
+        loggers["acquisition"].error(f"Error while running command: {' '.join(command)}")
         loggers["acquisition"].error(e.stderr)
         return False
 
