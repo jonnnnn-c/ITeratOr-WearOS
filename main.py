@@ -6,14 +6,8 @@ from app.logs.logger_config import (
     clear_output_folder,
 )  # Import the logger initialization function
 
-from app.preacquisition import (
-    pair, 
-    connect
-)
-from app.acquisition import (
-    device_information, 
-    freeze
-)
+from app.preacquisition import pair, connect
+from app.acquisition import device_information, freeze
 
 # Global variables
 emulated = None
@@ -29,17 +23,14 @@ def parser_options():
     parser = argparse.ArgumentParser(
         description="Choose between physical or emulated watch connection."
     )
-
     # Add mutually exclusive group for either -p (physical) or -e (emulated)
     group = parser.add_mutually_exclusive_group(required=True)
-
     group.add_argument(
         "-p", "--physical", action="store_true", help="Use physical watch"
     )
     group.add_argument(
         "-e", "--emulated", action="store_true", help="Use emulated watch"
     )
-
     # Add an optional argument for the network interface when using physical
     parser.add_argument(
         "-i",
@@ -48,14 +39,12 @@ def parser_options():
         default="wlan0",
         help="Specify network interface for physical watch (default is wlan0)",
     )
-
     # Add an optional argument to clear log files
     parser.add_argument(
         "--clear-logs",
         action="store_true",
         help="Clear all log files in the output folder",
     )
-
     return parser.parse_args()
 
 
@@ -114,7 +103,7 @@ def run_auto_acquisition():
     # 1
     loggers["acquisition"].info("Running device information commands\n")
     device_information.document_device_state()
-    
+
     # loggers["acquisition"].info("Running freezing commands")
     # freeze.freeze_device()
 
@@ -145,22 +134,18 @@ def main():
 
     # Parse command-line options
     option = parser_options()
-
     # Clear log files if the option is set
     if option.clear_logs:
         clear_output_folder()
         loggers["app"].warning("Log clearing operation completed.")
-
     # Set up environment (install necessary tools like adb, iwlist)
     setup_required_tools()
 
     if option.physical:
         emulated = False
         network_interface = option.interface
-
         loggers["app"].info("Selected: Physical watch")
         loggers["app"].info(f"Using network interface: {network_interface}")
-
         # Connect and pair with the physical device
         if not pair.pair(network_interface):  # Check if pairing was successful
             loggers["app"].error("Connection aborted. Exiting...")
@@ -169,19 +154,15 @@ def main():
     elif option.emulated:
         emulated = True
         loggers["app"].info("Selected: Emulated watch")
-
         # No pairing needed for emulated watch
         # Check if there are any adb devices, if not quit
         device = connect.check_adb_devices()
-
         if len(device) < 1:
             loggers["app"].info("No device found. Exiting")
             return
-
         elif len(device) > 1:
             loggers["app"].info("Please only have 1 android device running at one time")
             return
-
         else:
             device_name = device[0]
             loggers["app"].info(f"Emulated device chosen: {device_name}")
@@ -200,7 +181,6 @@ def main():
             loggers["app"].warning(
                 "Device is not rooted; some commands may not work properly."
             )
-
         loggers["app"].warning(
             "To safely disconnect, select option 5 from the menu or press Ctrl+C to exit the script."
         )
