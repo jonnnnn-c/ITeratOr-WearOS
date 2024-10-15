@@ -7,7 +7,7 @@ from app.logs.logger_config import (
 )  # Import the logger initialization function
 
 from app.preacquisition import pair, connect
-from app.acquisition import device_information, freeze
+from app.acquisition import device_information, freeze_processes
 
 # Global variables
 emulated = None
