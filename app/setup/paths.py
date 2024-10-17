@@ -9,3 +9,4 @@ OUTPUT_DIR = os.path.join(ROOT_DIR, 'output/')
 # Acquisition output
 DEVICE_INFORMATION_DIR = os.path.join(OUTPUT_DIR, 'device_information/')
 ISOLATE_DEVICE_DIR = os.path.join(OUTPUT_DIR, 'isolation_status/')
+FREEZE_PROCESSES_DIR = os.path.join(OUTPUT_DIR, 'freeze_processes/')

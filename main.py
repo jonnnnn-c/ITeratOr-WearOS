@@ -73,16 +73,12 @@ def display_menu(device_name, choice=None):
             # Call the appropriate function based on the user's choice
             if choice == "1":
                 run_auto_acquisition()
-                loggers["app"].info("Executing auto run acquisition commands.")
             elif choice == "2":
                 run_manual_acquisition()
-                loggers["app"].info("Executing manual run acquisition commands.")
             elif choice == "3":
                 run_other_commands()
-                loggers["app"].info("Executing run other commands.")
             elif choice == "4":
                 download_retrieved_content()
-                loggers["app"].info("Executing download retrieved content commands.")
             elif choice == "5":
                 exit_program()
                 break

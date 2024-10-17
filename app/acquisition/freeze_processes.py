@@ -1,105 +1,103 @@
-import subprocess
-import sys
-from app.logs.logger_config import initialize_loggers
+import os
+from app.setup import paths
+from app.logs.logger_config import initialize_loggers, run_adb_command, append_to_output_file
 
 # Initialize all loggers
 loggers = initialize_loggers()
 
+# Set output folder and output file path
+upload_dir = paths.FREEZE_PROCESSES_DIR
+output_file_path = os.path.join(upload_dir, "process_freeze_status.txt")
 
-def run_adb_command(command):
-    """Function to run ADB commands and handle errors."""
+
+def list_installed_packages():
+    """List all installed package names on the device."""
     try:
-        result = subprocess.run(command, check=True, text=True, capture_output=True)
-        loggers["acquisition"].info(f"Command succeeded: {' '.join(command)}")
-        loggers["acquisition"].info(result.stdout)
-        return True
-    except subprocess.CalledProcessError as e:
-        loggers["acquisition"].error(f"Error while running command: {' '.join(command)}")
-        loggers["acquisition"].error(e.stderr)
+        output = run_adb_command(
+            ["adb", "shell", "pm", "list", "packages"],
+            "Retrieving list of installed packages"
+        )
+        packages = [line.replace("package:", "").strip() for line in output.splitlines()]
+        loggers["acquisition"].info("Successfully retrieved installed packages.")
+        return packages
+    except Exception as e:
+        loggers["acquisition"].error(f"Failed to list installed packages: {e}")
+        return []
+
+
+def get_process_status(package_name):
+    """Get the running status of the process."""
+    try:
+        output = run_adb_command(
+            ["adb", "shell", "ps"],
+            "Checking running processes"
+        )
+        return package_name in output
+    except Exception as e:
+        loggers["acquisition"].error(f"Failed to check process status: {e}")
         return False
 
 
-def freeze_processes():
-    """Freeze all running user apps on the device."""
-    loggers["acquisition"].info("Freezing all running user applications.")
-    result = run_adb_command(["adb", "shell", "am", "kill-all"])
-    if result:
-        loggers["acquisition"].info("Successfully killed all running apps.")
-    else:
-        loggers["acquisition"].error("Failed to kill all running apps.")
+def log_process_status(package_name, is_running):
+    """Log the status of the process before freezing."""
+    status = "running" if is_running else "not running"
+    append_to_output_file(output_file_path, f"Process '{package_name}' is {status}.")
 
 
-def disable_bluetooth():
-    """Disable Bluetooth to prevent external communication."""
-    loggers["acquisition"].info("Disabling Bluetooth.")
-    result = run_adb_command(
-        ["adb", "shell", "service", "call", "bluetooth_manager", "8"]
-    )
-    if result:
-        loggers["acquisition"].info("Bluetooth disabled successfully.")
-    else:
-        loggers["acquisition"].error("Failed to disable Bluetooth.")
+def freeze_process(package_name):
+    """Freeze the specified process on the device."""
+    is_running = get_process_status(package_name)
+    log_process_status(package_name, is_running)
 
-
-def disable_location_services():
-    """Disable location services to prevent unnecessary updates."""
-    loggers["acquisition"].info("Disabling location services.")
-    result = run_adb_command(
-        ["adb", "shell", "settings", "put", "secure", "location_mode", "0"]
-    )
-    if result:
-        loggers["acquisition"].info("Location services disabled successfully.")
-    else:
-        loggers["acquisition"].error("Failed to disable location services.")
-
-
-def stop_background_services():
-    """Stop any non-essential background services."""
-    loggers["acquisition"].info("Stopping non-essential background services.")
-    services_to_stop = [
-        "com.google.android.gms",
-        "com.android.vending",
-    ]  # Example services
-    for service in services_to_stop:
-        result = run_adb_command(["adb", "shell", "am", "force-stop", service])
-        if result:
-            loggers["acquisition"].info(f"Successfully stopped {service}.")
-        else:
-            loggers["acquisition"].error(f"Failed to stop {service}.")
-
-
-def set_airplane_mode():
-    """Enable airplane mode to block all network communication."""
-    loggers["acquisition"].info("Enabling airplane mode.")
-    result = run_adb_command(
-        ["adb", "shell", "settings", "put", "global", "airplane_mode_on", "1"]
-    )
-    if result:
-        loggers["acquisition"].info("Airplane mode enabled.")
-        # Broadcast the airplane mode change
+    if is_running:
         run_adb_command(
-            [
-                "adb",
-                "shell",
-                "am",
-                "broadcast",
-                "-a",
-                "android.intent.action.AIRPLANE_MODE",
-            ]
+            ["adb", "shell", "am", "force-stop", package_name],
+            f"Freezing process: {package_name}"
         )
+        append_to_output_file(output_file_path, f"Process '{package_name}' has been frozen.")
     else:
-        loggers["acquisition"].error("Failed to enable airplane mode.")
+        append_to_output_file(output_file_path, f"Process '{package_name}' was not running, no action taken.")
 
 
-def freeze_device():
-    """Freeze the WearOS device to prevent data changes during acquisition."""
-    loggers["acquisition"].info("Initiating device freeze process...")
+def available_functions():
+    """List of available functions for freezing processes."""
+    if not os.path.exists(upload_dir):
+        os.makedirs(upload_dir)
+        loggers["acquisition"].debug(f"Created directory: {upload_dir}")
 
-    # Sequentially run the freezing steps
-    freeze_processes()
-    disable_bluetooth()
-    disable_location_services()
-    stop_background_services()
-    set_airplane_mode()
+    return {
+        "freeze_process": "Freeze a specified process by package name",
+        "list_installed_packages": "List all installed package names on the device",
+    }
 
-    loggers["acquisition"].info("Device freeze process completed.")
+
+def freeze_device_processes():
+    """Isolate and freeze specified processes."""
+    loggers["acquisition"].info("Running process freeze commands\n")
+
+    # List all installed packages and let the user select one
+    packages = list_installed_packages()
+    
+    if not packages:
+        loggers["acquisition"].warning("No packages found.")
+        return
+
+    # Display the list of packages to the user
+    print("Installed Packages:")
+    for i, package in enumerate(packages, start=1):
+        print(f"{i}. {package}")
+
+    # Allow user to select a package
+    try:
+        choice = int(input("\nSelect a package number to freeze: ")) - 1
+        if 0 <= choice < len(packages):
+            package_name = packages[choice]
+            freeze_process(package_name)
+        else:
+            print("Invalid selection. No action taken.")
+            loggers["acquisition"].warning("Invalid package selection made by user.")
+    except ValueError:
+        print("Invalid input. Please enter a number.")
+        loggers["acquisition"].warning("Non-integer input provided for package selection.")
+
+    loggers["acquisition"].info("Process freezing completed.\n")
