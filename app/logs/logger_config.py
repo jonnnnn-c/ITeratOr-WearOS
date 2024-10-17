@@ -108,10 +108,15 @@ def run_adb_command(command, task):
             text=True,
             capture_output=True
         )
-        # Log command used for task
-        loggers["acquisition"].debug(
-            f"[SUCCESS] Command succeeded: {' '.join(command)}\n")
-        return result.stdout.strip()
+
+	
+        if "screencap" in command:  # Add other commands that return binary data as needed
+            return result.stdout
+        else:
+		# Log command used for task
+        	loggers["acquisition"].debug(
+            	f"[SUCCESS] Command succeeded: {' '.join(command)}\n")
+        	return result.stdout.strip()
 
     except subprocess.CalledProcessError as e:
         loggers["acquisition"].error(
@@ -119,15 +124,18 @@ def run_adb_command(command, task):
         return None
 
 
+
 def append_to_output_file(output_file_path, data, action="a", add_newline=True):
     """Append data to the output file with an optional newline."""
     try:
-        with open(output_file_path, action) as f:
-            # Write data with or without newline based on the parameter
-            if add_newline:
-                f.write(data + '\n\n')
-            else:
-                f.write(data)
+    	with open(output_file_path,action) as f:
+    		if isinstance(data, bytes):
+    			f.write(data)
+    		else:
+        	    if add_newline:
+        	    	f.write(data +'\n\n')
+	            else:
+	            	f.write(data)
     except Exception as e:
         loggers["acquisition"].error(
             f"Failed to write to file {output_file_path}: {e}")
