@@ -154,7 +154,7 @@ def available_functions():
     """List of available functions to document device state."""
     if not os.path.exists(upload_dir):
         os.makedirs(upload_dir)
-        loggers["acquisition"].info(f"Created directory: {upload_dir}")
+        loggers["acquisition"].debug(f"Created directory: {upload_dir}")
 
     return {
         "get_device_info": "Capture device model, android version, and serial number",

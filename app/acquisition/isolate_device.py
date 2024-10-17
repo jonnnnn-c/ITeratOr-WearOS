@@ -130,7 +130,7 @@ def available_functions():
     """List of available functions for isolating the device."""
     if not os.path.exists(upload_dir):
         os.makedirs(upload_dir)
-        loggers["acquisition"].info(f"Created directory: {upload_dir}")
+        loggers["acquisition"].debug(f"Created directory: {upload_dir}")
 
     return {
         "enable_airplane_mode": "Enable airplane mode on the device",

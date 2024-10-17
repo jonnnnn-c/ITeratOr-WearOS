@@ -4,10 +4,9 @@ from app.setup.setup_environment import setup_required_tools, enable_adb_root
 from app.logs.logger_config import (
     initialize_loggers,
     clear_output_folder,
-)  # Import the logger initialization function
-
+)
 from app.preacquisition import pair, connect
-from app.acquisition import device_information, isolate_device
+from app.setup.choices import *
 
 # Global variables
 emulated = None
@@ -65,26 +64,35 @@ def display_menu(device_name, choice=None):
     while True:
         print_boxed_menu(menu_options)
 
-        if choice is None:
-            choice = input("\nEnter your choice: ")
-            print()  # Add an extra line for spacing
+        try:
+            if choice is None:
+                choice = input("\nEnter your choice: ")
+                print()  # Add an extra line for spacing
+                loggers["app"].info(f"User selected option: {choice}")
 
-        # Call the appropriate function based on the user's choice
-        if choice == "1":
-            run_auto_acquisition()
-        elif choice == "2":
-            run_manual_acquisition()
-        elif choice == "3":
-            run_other_commands()
-        elif choice == "4":
-            download_retrieved_content()
-        elif choice == "5":
-            exit_program()
-            break
-        else:
-            loggers["app"].warning("Invalid choice made by user.")
-
-        choice = None  # Reset to None for re-prompting
+            # Call the appropriate function based on the user's choice
+            if choice == "1":
+                run_auto_acquisition()
+                loggers["app"].info("Executing auto run acquisition commands.")
+            elif choice == "2":
+                run_manual_acquisition()
+                loggers["app"].info("Executing manual run acquisition commands.")
+            elif choice == "3":
+                run_other_commands()
+                loggers["app"].info("Executing run other commands.")
+            elif choice == "4":
+                download_retrieved_content()
+                loggers["app"].info("Executing download retrieved content commands.")
+            elif choice == "5":
+                exit_program()
+                break
+            else:
+                loggers["app"].warning("Invalid selection. Please select a valid category number.")
+            choice = None  # Reset to None for re-prompting
+            
+        except Exception as e:
+            loggers["app"].error(f"An error occurred: {str(e)}")
+            choice = None  # Reset choice for re-prompting
 
 
 def print_boxed_menu(options):
@@ -96,64 +104,6 @@ def print_boxed_menu(options):
     for option in options:
         print(f"| {option.ljust(max_length)} |")
     print(border)
-
-
-def run_auto_acquisition():
-    """Run the auto acquisition commands."""
-    device_information.document_device_state()
-    isolate_device.isolate_device_state()
-
-
-def run_manual_acquisition():
-    """Run manual acquisition commands."""
-    loggers["app"].info("You selected manual acquisition.")
-
-    # Define the categories and their respective functions
-    categories = {
-        "Device Information": device_information.available_functions(),
-        "Isolate Device": isolate_device.available_functions()
-    }
-
-    # Display available categories
-    print("\nAvailable acquisition command categories:")
-    for i, category in enumerate(categories.keys(), start=1):
-        print(f"{i}. {category}")
-
-    # Allow user to select a category
-    category_choice = int(input("\nSelect a category by number: ")) - 1
-    selected_category = list(categories.keys())[category_choice]
-    selected_functions = categories[selected_category]
-
-    # Display functions in the selected category
-    print(f"\nAvailable functions in {selected_category}:")
-    for i, (func_name, description) in enumerate(selected_functions.items(), start=1):
-        print(f"  {i}. {description}")
-
-    # Allow user to select a function
-    function_choice = int(input("\nSelect a command to run by number: ")) - 1
-    selected_func_name = list(selected_functions.keys())[function_choice]
-
-    # Call the selected function dynamically using the module prefix
-    if selected_category == "Device Information":
-        getattr(device_information, selected_func_name)()  # Calls device_information.selected_func_name()
-    elif selected_category == "Isolate Device":
-        getattr(isolate_device, selected_func_name)()  # Calls isolate_device.selected_func_name()
-
-
-def run_other_commands():
-    """Run other commands like adb shell."""
-    loggers["app"].info("Running other commands (to be implemented).")
-
-
-def download_retrieved_content():
-    """Download the contents retrieved during acquisition."""
-    loggers["app"].info("Downloading contents retrieved.")
-
-
-def exit_program():
-    """Exit the application."""
-    loggers["app"].info("Exiting the application...")
-    connect.disconnect_all_devices()  # Assuming this exists in your codebase
 
 
 def main():
