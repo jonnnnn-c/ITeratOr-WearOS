@@ -1,8 +1,23 @@
+"""
+adb shell settings get global airplane_mode_on
+# 0|1 -  dis/en abled
+
+adb shell settings get global mobile_data
+# 0|1 - dis/en abled
+
+adb shell settings get global wifi_on
+# 0|1 - dis/en abled
+
+adb shell settings get global bluetooth_on
+# 2|1 - dis/en abled
+
+adb shell settings get global cell_on
+# 2|1 - dis/en abled
+"""
+
 import os
-import subprocess
-from app.logs.logger_config import initialize_loggers
 from app.setup import paths
-from app.logs.run_save_acq_cmd import run_adb_command, append_to_output_file
+from app.logs.logger_config import initialize_loggers, run_adb_command, append_to_output_file
 
 # Initialize all loggers
 loggers = initialize_loggers()
@@ -17,147 +32,102 @@ def enable_airplane_mode():
     original_value = run_adb_command(
         ["adb", "shell", "settings", "get", "global", "airplane_mode_on"],
         "Retrieving original airplane mode status"
-    )
-    append_to_output_file(output_file_path, f"Original Airplane Mode Status: {original_value}")
+    ).strip()
+
+    # Interpret the value
+    status = "Airplane Mode is OFF" if original_value == "0" else "Airplane Mode is ON"
+    append_to_output_file(output_file_path, f"Original Airplane Mode Status: {status}")
 
     run_adb_command(
         ["adb", "shell", "settings", "put", "global", "airplane_mode_on", "1"],
         "Enabling airplane mode"
     )
     run_adb_command(
-        ["adb", "shell", "am", "broadcast", "-a",
-            "android.intent.action.AIRPLANE_MODE"],
+        ["adb", "shell", "am", "broadcast", "-a", "android.intent.action.AIRPLANE_MODE"],
         "Broadcasting airplane mode intent"
     )
     append_to_output_file(output_file_path, "Airplane mode enabled.")
 
 
 def disable_mobile_data():
-    """
-    Disable mobile data on the device.
-
-    Forensic Soundness: Disabling mobile data is generally acceptable as it 
-    prevents the device from accessing external networks and reduces the 
-    risk of remote wiping or data alteration.
-    
-    Recommendation: Safe to implement.
-
-    """
+    """Disable mobile data on the device."""
     original_value = run_adb_command(
-        ["adb", "shell", "svc", "data", "status"],
+        ["adb", "shell", "settings", "get", "global", "mobile_data"],
         "Retrieving original mobile data status"
-    )
-    append_to_output_file(output_file_path, f"Original Mobile Data Status: {original_value}")
+    ).strip()
+
+    status = "Mobile Data is OFF" if original_value == "0" else "Mobile Data is ON"
+    append_to_output_file(output_file_path, f"Original Mobile Data Status: {status}")
     
     run_adb_command(
         ["adb", "shell", "svc", "data", "disable"],
         "Disabling mobile data"
     )
     append_to_output_file(output_file_path, "Mobile data disabled.")
-    loggers["acquisition"].info("Mobile data has been disabled.")
 
 
 def disable_bluetooth():
-    """
-    Disable Bluetooth on the device.
-    
-    Forensic Soundness: Disabling Bluetooth prevents unauthorized connections. 
-    This is typically a sound practice for isolation.
-    
-    Recommendation: Safe to implement.
-
-    """
+    """Disable Bluetooth on the device."""
     original_value = run_adb_command(
         ["adb", "shell", "settings", "get", "global", "bluetooth_on"],
         "Retrieving original Bluetooth status"
-    )
-    # Interpret the value (0 = off, 1 = on)
-    if original_value == "0":
-        status = "Bluetooth is OFF"
-    elif original_value == "1":
+    ).strip()
+
+    # Interpret the value (0 = off, 1 = on, 2 = unavailable)
+    if original_value == "1":
         status = "Bluetooth is ON"
+    elif original_value == "0":
+        status = "Bluetooth is OFF"
+    elif original_value == "2":
+        status = "Bluetooth is unavailable"
     else:
         status = f"Unknown Bluetooth status: {original_value}"
+
+    append_to_output_file(output_file_path, f"Original Bluetooth Status: {status}")
 
     run_adb_command(
         ["adb", "shell", "svc", "bluetooth", "disable"],
         "Disabling Bluetooth"
     )
     append_to_output_file(output_file_path, "Bluetooth disabled.")
-    loggers["acquisition"].info("Bluetooth has been disabled.")
 
 
-def stop_background_sync():
-    """
-    Stop background synchronization.
-    
-    Forensic Soundness: Stopping background sync can prevent apps from sending 
-    data or receiving updates. However, this may alter the state of certain 
-    applications, which could affect data integrity.
-    
-    Recommendation: Consider the impact on app states; if possible, 
-    document which apps are affected.
-
-    """
+def disable_wifi():
+    """Disable WiFi on the device."""
     original_value = run_adb_command(
-        ["adb", "shell", "settings", "get", "global", "background_data"],
-        "Retrieving original background data sync status"
-    )
-    append_to_output_file(output_file_path, f"Original Background Data Sync Status: {original_value}")
+        ["adb", "shell", "settings", "get", "global", "wifi_on"],
+        "Retrieving original WiFi status"
+    ).strip()
+
+    status = "WiFi is OFF" if original_value == "0" else "WiFi is ON"
+    append_to_output_file(output_file_path, f"Original WiFi Status: {status}")
     
     run_adb_command(
-        ["adb", "shell", "settings", "put", "global", "background_data", "0"],
-        "Stopping background data sync"
+        ["adb", "shell", "svc", "wifi", "disable"],
+        "Disabling WiFi"
     )
-    append_to_output_file(output_file_path, "Background data sync stopped.")
-    loggers["acquisition"].info("Background data sync has been stopped.")
-
-
-def lock_screen():
-    """
-    Lock the device screen.
-    
-    Forensic Soundness: Locking the screen does not affect data integrity 
-    and can help secure the device.
-    
-    Recommendation: Safe to implement
-
-    """
-    run_adb_command(
-        ["adb", "shell", "input", "keyevent", "26"],  # Keyevent for power button
-        "Locking the screen"
-    )
-    append_to_output_file(output_file_path, "Screen locked.")
-    loggers["acquisition"].info("Device screen has been locked.")
+    append_to_output_file(output_file_path, "WiFi disabled.")
 
 
 def disable_location_services():
-    """
-    Disable location services.
-    
-    Forensic Soundness: Disabling location services may alter the state of applications 
-    that rely on location data, potentially affecting the evidence collected.
-    
-    Recommendation: Use with caution; document that location services were disabled.
-    
-    """
+    """Disable location services."""
     original_value = run_adb_command(
         ["adb", "shell", "settings", "get", "secure", "location_mode"],
         "Retrieving original location services status"
-    )
-    append_to_output_file(output_file_path, f"Original Location Services Status: {original_value}")
-    
+    ).strip()
+
+    status = "Location Services are OFF" if original_value == "0" else "Location Services are ON"
+    append_to_output_file(output_file_path, f"Original Location Services Status: {status}")
+
     run_adb_command(
         ["adb", "shell", "settings", "put", "secure", "location_mode", "0"],
         "Disabling location services"
     )
     append_to_output_file(output_file_path, "Location services disabled.")
-    loggers["acquisition"].info("Location services have been disabled.")
 
 
 def available_functions():
     """List of available functions for isolating the device."""
-
     if not os.path.exists(upload_dir):
         os.makedirs(upload_dir)
         loggers["acquisition"].info(f"Created directory: {upload_dir}")
@@ -166,19 +136,18 @@ def available_functions():
         "enable_airplane_mode": "Enable airplane mode on the device",
         "disable_mobile_data": "Disable mobile data on the device",
         "disable_bluetooth": "Disable Bluetooth on the device",
-        "stop_background_sync": "Stop background synchronization",
-        "lock_screen": "Lock the device screen",
-        "disable_location_services": "Disable location services",
+        "disable_wifi": "Disable WiFi on the device",
+        "disable_location_services": "Disable location services"
     }
 
 
 def isolate_device_state():
     """Document the isolation state of the device."""
-    print()
     loggers["acquisition"].info("2. Running isolation of device commands\n")
     all_functions = available_functions()
-    
+
     # Loop through the dictionary and execute each function
-    for func_name, description in all_functions.items():
+    for func_name in all_functions.keys():
         globals()[func_name]()  # Dynamically call the function by name
-    loggers["acquisition"].info("Device isolation completed.")
+    
+    loggers["acquisition"].info("Device isolation completed.\n")

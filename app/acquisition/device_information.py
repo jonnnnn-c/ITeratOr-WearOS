@@ -1,8 +1,7 @@
 import os
 import subprocess
-from app.logs.logger_config import initialize_loggers
 from app.setup import paths
-from app.logs.run_save_acq_cmd import run_adb_command, append_to_output_file
+from app.logs.logger_config import initialize_loggers, run_adb_command, append_to_output_file
 
 # Initialize all loggers
 loggers = initialize_loggers()
@@ -137,8 +136,6 @@ def capture_screenshot():
             check=True,
             stdout=subprocess.PIPE
         )
-        loggers["acquisition"].info(
-            "Screenshot captured and saved as screenshot.png")
         screenshot_file_path = os.path.join(upload_dir, "screenshot.png")
         append_to_output_file(
             screenshot_file_path,
@@ -146,7 +143,8 @@ def capture_screenshot():
             action="wb",
             add_newline=False
         )
-
+        loggers["acquisition"].info(
+            "Screenshot captured and saved as screenshot.png")
     except subprocess.CalledProcessError as e:
         loggers["acquisition"].error("Failed to capture screenshot.")
         loggers["acquisition"].error(e.stderr)
@@ -179,6 +177,6 @@ def document_device_state():
     all_functions = available_functions()
     
     # Loop through the dictionary and execute each function
-    for func_name, description in all_functions.items():
+    for func_name in all_functions.keys():
         globals()[func_name]()  # Dynamically call the function by name
-    loggers["acquisition"].info("Device state documentation completed.")
+    loggers["acquisition"].info("Device state documentation completed.\n")

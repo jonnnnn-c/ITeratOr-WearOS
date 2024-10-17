@@ -177,7 +177,6 @@ def main():
         if not pair.pair(network_interface):  # Check if pairing was successful
             loggers["app"].error("Connection aborted. Exiting...")
             return  # Exit if connection fails
-
     elif option.emulated:
         emulated = True
         loggers["app"].info("Selected: Emulated watch")
@@ -193,7 +192,6 @@ def main():
         else:
             device_name = device[0]
             loggers["app"].info(f"Emulated device chosen: {device_name}")
-
     else:
         loggers["app"].error("Invalid Option")
         return  # Exit early in case of invalid options
@@ -216,7 +214,6 @@ def main():
             display_menu(device_name)
         else:
             display_menu(connect.get_physical_device_name())
-
     except KeyboardInterrupt:
         loggers["app"].warning("Keyboard Interrupt: Script ended abruptly")
         exit_program()

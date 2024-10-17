@@ -1,6 +1,8 @@
 import logging
 import os
 import shutil
+import datetime
+import subprocess
 
 # Global variables
 log_folder = "output"
@@ -11,7 +13,19 @@ log_folder = "output"
 # network.log: Device connection-related events (e.g., connect, pair, disconnect).
 # preacquisition.log: Network security checks before acquisition.
 # acquisition.log: Actions during acquisition (e.g., memory dumps, process freezing, file extraction).
-log_files = {"app.log", "env_setup.log", "network.log", "preacquisition.log", "acquisition.log"}
+log_files = {
+    "app.log",
+    "env_setup.log",
+    "network.log",
+    "preacquisition.log",
+    "acquisition.log"
+}
+
+
+def logging_formatter():
+    return logging.Formatter(
+        "%(asctime)s [%(name)s] [%(levelname)s] - %(message)s"
+    )
 
 
 def get_logger_for_file(log_filename):
@@ -35,9 +49,7 @@ def get_logger_for_file(log_filename):
         console_handler = logging.StreamHandler()
 
         # Create formatters and add to handlers
-        formatter = logging.Formatter(
-            "%(asctime)s [%(name)s] [%(levelname)s] - %(message)s"
-        )
+        formatter = logging_formatter()
         file_handler.setFormatter(formatter)
         console_handler.setFormatter(formatter)
 
@@ -57,8 +69,10 @@ def initialize_loggers():
     }
     return loggers
 
+
 # Initialize all loggers
 loggers = initialize_loggers()
+
 
 def clear_output_folder():
     """Clear the contents of all log files in the 'output' folder and reinitialize loggers."""
@@ -70,11 +84,50 @@ def clear_output_folder():
             if os.path.isfile(file_path):
                 with open(file_path, "w"):
                     pass  # This clears the contents of the file
-                    loggers["app"].warning(f"Cleared contents within {log_file} file.")
-                
-         # Delete contents of the 'device_information' subfolder
-        device_info_folder = os.path.join(log_folder, 'device_information')
-        if os.path.exists(device_info_folder) and os.path.isdir(device_info_folder):
-            shutil.rmtree(device_info_folder)  # Delete the entire directory and its contents
-            loggers["app"].warning("Deleted the device_information folder and its contents.")
-        
+                    loggers["app"].warning(
+                        f"Cleared contents within {log_file} file.")
+
+        # Delete all subfolders and their contents within the log folder.
+        for subfolder in os.listdir(log_folder):
+            full_path = os.path.join(log_folder, subfolder)
+            if os.path.isdir(full_path):
+                # Delete the directory and its contents
+                shutil.rmtree(full_path)
+                loggers["app"].warning(
+                    f"Deleted the folder and its contents: {subfolder}")
+
+
+def run_adb_command(command, task):
+    """Function to run ADB commands and handle errors."""
+    try:
+        # Log task performed
+        loggers["acquisition"].info(task)
+        result = subprocess.run(
+            command,
+            check=True,
+            text=True,
+            capture_output=True
+        )
+        # Log command used for task
+        loggers["acquisition"].debug(
+            f"[SUCCESS] Command succeeded: {' '.join(command)}\n")
+        return result.stdout.strip()
+
+    except subprocess.CalledProcessError as e:
+        loggers["acquisition"].error(
+            f"[FAILED] Error while running command: {' '.join(command)}\n")
+        return None
+
+
+def append_to_output_file(output_file_path, data, action="a", add_newline=True):
+    """Append data to the output file with an optional newline."""
+    try:
+        with open(output_file_path, action) as f:
+            # Write data with or without newline based on the parameter
+            if add_newline:
+                f.write(data + '\n\n')
+            else:
+                f.write(data)
+    except Exception as e:
+        loggers["acquisition"].error(
+            f"Failed to write to file {output_file_path}: {e}")
