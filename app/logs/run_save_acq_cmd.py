@@ -19,7 +19,7 @@ def run_adb_command(command, task):
             capture_output=True
         )
         # Log command used for task
-        loggers["acquisition"].info(
+        loggers["acquisition"].debug(
             f"[SUCCESS] Command succeeded: {' '.join(command)}\n")
         return result.stdout.strip()
 
