@@ -105,7 +105,7 @@ def run_adb_command(command, task):
         result = subprocess.run(
             command,
             check=True,
-            text=True,
+            text=False, #default handle as bytes
             capture_output=True
         )
 
@@ -116,7 +116,7 @@ def run_adb_command(command, task):
 		# Log command used for task
         	loggers["acquisition"].debug(
             	f"[SUCCESS] Command succeeded: {' '.join(command)}\n")
-        	return result.stdout.strip()
+        	return result.stdout.decode('utf-8', errors='replace').strip()
 
     except subprocess.CalledProcessError as e:
         loggers["acquisition"].error(
