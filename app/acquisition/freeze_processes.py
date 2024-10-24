@@ -61,21 +61,26 @@ def freeze_process(package_name):
 
 def available_functions():
     """List of available functions for freezing processes."""
-    if not os.path.exists(upload_dir):
-        os.makedirs(upload_dir)
-        loggers["acquisition"].debug(f"Created directory: {upload_dir}")
+    try:
+        if not os.path.exists(upload_dir):
+            os.makedirs(upload_dir)
+            loggers["acquisition"].debug(f"Created directory: {upload_dir}")
 
-    return {
-        "freeze_process": "Freeze a specified process by package name",
-        "list_installed_packages": "List all installed package names on the device",
-    }
-
+        return {
+            "freeze_process": "Freeze a specified process by package name",
+            "list_installed_packages": "List all installed package names on the device",
+        }
+    except Exception as e:
+        loggers["acquisition"].error(f"An error occurred while listing available functions: {e}")
+        return {}  # Return an empty dictionary if something goes wrong
 
 def freeze_device_processes():
     """Isolate and freeze specified processes."""
     loggers["acquisition"].info("Running process freeze commands\n")
 
     # List all installed packages and let the user select one
+    available_functions()
+    
     packages = list_installed_packages()
     
     if not packages:

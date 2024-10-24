@@ -9,10 +9,10 @@ def run_auto_acquisition():
     """Run the auto acquisition commands."""
     loggers["app"].info("You selected auto run acquisition.")
     
-    device_information.document_device_state() # 1
-    isolate_device.isolate_device_state() # 2
+    # device_information.document_device_state() # 1
+    # isolate_device.isolate_device_state() # 2
     # 3
-    freeze_processes.freeze_device_processes()# 4
+    freeze_processes.freeze_device_processes()# 6
     
 
 def run_manual_acquisition():
