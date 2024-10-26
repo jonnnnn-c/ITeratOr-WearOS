@@ -155,6 +155,68 @@ def disable_location_services():
         loggers["acquisition"].error(f"An error occurred while disabling location services: {e}")
 
 
+def set_max_screen_timeout():
+    """Set screen timeout to the maximum allowable value."""
+    try:
+        # Retrieve current screen timeout setting
+        original_value = run_adb_command(
+            ["adb", "shell", "settings", "get", "system", "screen_off_timeout"],
+            "Retrieving original screen timeout"
+        ).strip()
+
+        append_to_output_file(output_file_path, f"Original Screen Timeout: {original_value} ms")
+
+        # Set screen timeout to max value (24 hours = 86400000 ms)
+        run_adb_command(
+            ["adb", "shell", "settings", "put", "system", "screen_off_timeout", "86400000"],
+            "Setting screen timeout to maximum (24 hours)"
+        )
+        append_to_output_file(output_file_path, "Screen timeout set to 24 hours.")
+    
+    except AttributeError as e:
+        loggers["acquisition"].error(f"Failed to retrieve screen timeout setting: {e}")
+    except Exception as e:
+        loggers["acquisition"].error(f"An error occurred while setting screen timeout: {e}")
+
+
+def set_max_watchface_timeout():
+    """Set 'Go to watch face' timeout to the maximum allowable value."""
+    try:
+        # Retrieve current "Go to watch face" timeout setting
+        original_value = run_adb_command(
+            ["adb", "shell", "settings", "get", "secure", "wear_display_timeout"],
+            "Retrieving original 'Go to watch face' timeout"
+        ).strip()
+
+        append_to_output_file(output_file_path, f"Original 'Go to watch face' Timeout: {original_value} ms")
+
+        # Set "Go to watch face" timeout to max value (often 1 hour = 3600000 ms)
+        run_adb_command(
+            ["adb", "shell", "settings", "put", "secure", "wear_display_timeout", "3600000"],
+            "Setting 'Go to watch face' timeout to maximum (1 hour)"
+        )
+        append_to_output_file(output_file_path, "'Go to watch face' timeout set to 1 hour.")
+    
+    except AttributeError as e:
+        loggers["acquisition"].error(f"Failed to retrieve 'Go to watch face' timeout setting: {e}")
+    except Exception as e:
+        loggers["acquisition"].error(f"An error occurred while setting 'Go to watch face' timeout: {e}")
+
+
+def enable_stay_awake():
+    """Enable the 'Stay awake while charging' setting."""
+    try:
+        # Enable 'Stay Awake' mode, which is setting 'stay_on_while_plugged_in' to 7 (USB, AC, and wireless charging)
+        run_adb_command(
+            ["adb", "shell", "settings", "put", "global", "stay_on_while_plugged_in", "7"],
+            "Enabling 'Stay awake while charging'"
+        )
+        append_to_output_file(output_file_path, "'Stay awake while charging' enabled.")
+    
+    except Exception as e:
+        loggers["acquisition"].error(f"An error occurred while enabling 'Stay awake while charging': {e}")
+
+
 def available_functions():
     """List of available functions for isolating the device."""
     try:
@@ -167,7 +229,10 @@ def available_functions():
             "disable_mobile_data": "Disable mobile data on the device",
             "disable_bluetooth": "Disable Bluetooth on the device",
             "disable_wifi": "Disable WiFi on the device",
-            "disable_location_services": "Disable location services"
+            "disable_location_services": "Disable location services",
+            "set_max_screen_timeout": "Set screen timeout to maximum value (24 hours)",
+            "set_max_watchface_timeout": "Set 'Go to watch face' timeout to maximum (1 hour)",
+            "enable_stay_awake": "Enable 'Stay awake while charging'"
         }
     
     except Exception as e:
