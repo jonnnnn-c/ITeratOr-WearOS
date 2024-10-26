@@ -1,5 +1,5 @@
 from app.logs.logger_config import initialize_loggers
-from app.acquisition import device_information, isolate_device, freeze_processes
+from app.acquisition import device_information, isolate_device, freeze_processes, hash_generator
 from app.preacquisition import connect
 
 # Initialize all loggers
@@ -91,6 +91,12 @@ def download_retrieved_content():
     """Download the contents retrieved during acquisition."""
     loggers["app"].info("Downloading contents retrieved.")
 
+def run_hash_generation():
+    """Run the hash generation process."""
+    try:
+        hash_generator.main()
+    except Exception as e:
+        loggers["app"].error(f"Error during hash generation: {str(e)}")
 
 def exit_program():
     """Exit the application."""
