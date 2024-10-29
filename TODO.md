@@ -3,6 +3,7 @@ IMPORTANT
 - Pull commands
 - backup? (not sure if need)
 - make sure hashes is correct
+- figure out how should freeze process work
 
 TO DO
 - consider Root vs non root situations
