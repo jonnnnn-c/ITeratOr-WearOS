@@ -24,22 +24,17 @@ D.	Analysis Phase
 - For testing, applications on the watch will be populated with realistic sample data to reflect actual usage patterns. Data will first be parsed into the ALEAPP GUI, where it will subsequently be accessed.
 
 
-## How to run
-
-1. Run setup.sh to install the required packages on Linux.
-
-    ```
-    sudo chmod +x setup.sh
-    ./setup.sh
-    ```
+## Getting started
+1. Run a Linux Virtual Environment with 'Virtualize Intel VT-x/EPT or AMD-V/RVI' enabled.
+- https://www.reddit.com/r/vmware/comments/k7hd4z/virtualized_amdvrvi_is_not_supported_on_this/
 
 2. Start app
-
     ```
     python3 ./main.py (-p | -e)
     
-    -p  Use physical watch
-    -e  Use emulated watch
+    -h: Help
+    -p: Use physical watch
+    -e: Use emulated watch
 
 ## When developing
 - separate everything into folders and functions to make development easier
@@ -110,3 +105,8 @@ The following log files, located in the 'output' folder, provide useful informat
 | `network.log`          | Device connection-related events (e.g., connect, pair, disconnect).|
 | `preacquisition.log`   | Network security checks before acquisition.                       |
 | `acquisition.log`      | Actions during acquisition (e.g., memory dumps, process freezing, file extraction). |
+
+## When developing
+- separate everything into folders and functions to make development easier
+- use the logger.info or logger command to note each critical setp or command used during script execution
+    - https://docs.python.org/3/howto/logging.html
