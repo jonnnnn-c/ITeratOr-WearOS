@@ -1,5 +1,5 @@
 import argparse
-
+import threading
 from app.setup.setup_environment import setup_required_tools, enable_adb_root
 from app.logs.logger_config import (
     initialize_loggers,
@@ -93,7 +93,6 @@ def display_menu(device_name, choice=None):
             loggers["app"].error(f"An error occurred: {str(e)}")
             choice = None  # Reset choice for re-prompting
 
-
 def print_boxed_menu(options):
     """Prints the menu inside a simple ASCII box."""
     max_length = max(len(option) for option in options)
@@ -106,7 +105,7 @@ def print_boxed_menu(options):
 
 
 def main():
-    global emulated, network_interface
+    global emulated, network_interface  # Include the new variable
 
     # Parse command-line options
     option = parser_options()
@@ -114,7 +113,7 @@ def main():
     if option.clear_logs:
         clear_output_folder()
         loggers["app"].warning("Log clearing operation completed.")
-    # Set up environment (install necessary tools like adb, iwlist)
+    
     setup_required_tools()
 
     if option.physical:
@@ -122,16 +121,19 @@ def main():
         network_interface = option.interface
         loggers["app"].info("Selected: Physical watch")
         loggers["app"].info(f"Using network interface: {network_interface}")
-        # Connect and pair with the physical device
-        if not pair.pair(network_interface):  # Check if pairing was successful
+        if not pair.pair(network_interface):
             loggers["app"].error("Connection aborted. Exiting...")
-            return  # Exit if connection fails
+            return
+        
+        device_detection_thread = threading.Thread(target=connect.detect_devices)
+        device_detection_thread.daemon = True
+        device_detection_thread.start()
+        
     elif option.emulated:
         emulated = True
         loggers["app"].info("Selected: Emulated watch")
-        # No pairing needed for emulated watch
-        # Check if there are any adb devices, if not quit
         device = connect.check_adb_devices()
+        
         if len(device) < 1:
             loggers["app"].info("No device found. Exiting")
             return
@@ -143,30 +145,25 @@ def main():
             loggers["app"].info(f"Emulated device chosen: {device_name}")
     else:
         loggers["app"].error("Invalid Option")
-        return  # Exit early in case of invalid options
+        return
 
-    # Display the main menu once the connection is established
     try:
-        # Run adb root and check if it was successful, used mainly for emulated devices
         if enable_adb_root():
             loggers["app"].info("Device rooted: True")
         else:
             loggers["app"].warning("Device rooted: False")
-            loggers["app"].warning(
-                "Device is not rooted; some commands may not work properly."
-            )
-        loggers["app"].warning(
-            "To safely disconnect, select option 5 from the menu or press Ctrl+C to exit the script."
-        )
+            loggers["app"].warning("Device is not rooted; some commands may not work properly.")
+        loggers["app"].warning("To safely disconnect, select option 5 from the menu or press Ctrl+C to exit the script.")
 
         if emulated:
             display_menu(device_name)
         else:
             display_menu(connect.get_physical_device_name())
+
     except KeyboardInterrupt:
         loggers["app"].warning("Keyboard Interrupt: Script ended abruptly")
+        should_exit = True  # Set exit state
         exit_program()
-
 
 if __name__ == "__main__":
     main()
