@@ -1,6 +1,10 @@
 import re
 import subprocess
+import time
+import os
+from netdiscover import *
 from app.logs.logger_config import initialize_loggers
+from app.setup.choices import exit_program
 
 # Initialize all loggers
 loggers = initialize_loggers()
@@ -182,20 +186,55 @@ def check_adb_devices():
         loggers["network"].error(f"Error checking ADB devices: {e}")
         return []
 
-def scan_network(interface):
+
+def detect_devices():
+    """Detect devices on the network using python-netdiscover."""
+    while True:
+        try:
+            # Initialize the network scanner
+            disc = Discover()
+            
+            # Perform the network scan
+            devices = disc.scan(ip_range="192.168.249.0/24")
+            
+            # Extract IP addresses of detected devices (no need to decode)
+            ip_addresses = [device['ip'] for device in devices]
+            
+            loggers["network"].info(f"Devices detected: {len(ip_addresses)}")
+            
+            if len(ip_addresses) > 2:  # More than 2 additional devices
+                loggers["network"].error("More than 2 devices detected. Aborting script...")
+                exit_program()
+                os._exit(0)
+
+        except Exception as e:
+            loggers["network"].error(f"Unexpected error in device detection: {e}")
+            exit_program()
+        
+        #time.sleep(1)  # Wait before the next scan
+
+
+def scan_network():
     """Scan the network for connected devices."""
     try:
-        result = subprocess.run(['arp', '-a'], capture_output=True, text=True, check=True)
-        devices = []
-        for line in result.stdout.splitlines():
-            # Extract IP addresses from the ARP output
-            match = re.search(r'\((.*?)\)', line)
-            if match:
-                devices.append(match.group(1))  # Add the IP address to the list
-        return devices
-    except subprocess.CalledProcessError as e:
-        loggers["network"].error(f"Error scanning network: {e}")
-        return []
+            # Initialize the network scanner
+            disc = Discover()
+            
+            # Perform the network scan
+            devices = disc.scan(ip_range="192.168.249.0/24")
+            
+            # Extract IP addresses of detected devices (no need to decode)
+            ip_addresses = [device['ip'] for device in devices]
+            
+            loggers["network"].info(f"Devices detected: {len(ip_addresses)}")
+            
+            if len(ip_addresses) > 2:  # More than 2 additional devices
+                loggers["network"].error("More than 2 devices detected. Aborting script...")
+                exit_program()
+                os._exit(0)
+    except Exception as e:
+    	loggers["network"].error(f"Unexpected error in device detection: {e}")
+    	exit_program()
 
 def get_default_gateway():
     """Retrieve the default gateway for the device."""
@@ -210,17 +249,9 @@ def get_default_gateway():
 
 def verify_network_devices(current_device_ip, watch_ip):
     """Ensure the current device, smartwatch, and the default gateway are present on the network."""
-    devices = scan_network('wlan0')  # Replace with actual interface if needed
-    loggers["network"].info("Devices found on the network:", devices)
-    
+    time.sleep(15)
+    scan_network()
     # Get the default gateway
     default_gateway = get_default_gateway()
     loggers["network"].info(f"Default Gateway: {default_gateway}")
-
-    # Check if the watch IP, and default gateway are in the found devices
-    if default_gateway and len(devices) == 2 and watch_ip in devices and default_gateway in devices:
-        loggers["network"].info("Only the current device, the smartwatch, and the default gateway are present on the network. Continuing...")
-        return True
-    else:
-        loggers["network"].error("Warning: More devices found on the network or the default gateway is not present. Aborting...")
-        return False
+    return True
