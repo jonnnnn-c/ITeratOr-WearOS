@@ -30,6 +30,8 @@ D.	Analysis Phase
 
 2. Start app
     ```
+    pip install -r requirements.txt
+    
     python3 ./main.py (-p | -e)
     
     -h: Help
