@@ -56,10 +56,11 @@ def display_menu(device_name, choice=None):
         "",
         "1. Auto run acquisition commands",
         "2. Manually run acquisition commands",
-        "3. Extract and Hash directories from ADB",
-        "4. Others",  # Placeholder for adb shell or other options
-        "5. Download contents retrieved",  # Log and adb pull
-        "6. Exit",
+        # "3. Extract and Hash directories from ADB",
+        "3. Others",  # Placeholder for adb shell or other options
+        "4. Download contents retrieved",  # Log and adb pull
+        "5. Settings",
+        "0. Exit",
     ]
 
     while True:
@@ -76,13 +77,15 @@ def display_menu(device_name, choice=None):
                 run_auto_acquisition()
             elif choice == "2":
                 run_manual_acquisition()
+            # elif choice == "3":
+            #     run_hash_generation()  # Call the new function
             elif choice == "3":
-                run_hash_generation()  # Call the new function
-            elif choice == "4":
                 run_other_commands()
-            elif choice == "5":
+            elif choice == "4":
                 download_retrieved_content()
-            elif choice == "6":
+            elif choice == "5":
+                settings()
+            elif choice == "0":
                 exit_program()
                 break
             else:
