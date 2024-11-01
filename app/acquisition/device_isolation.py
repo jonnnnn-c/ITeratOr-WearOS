@@ -16,14 +16,14 @@ adb shell settings get global cell_on
 """
 
 import os
-from app.setup import paths
+from app.setup import settings
 from app.logs.logger_config import initialize_loggers, run_adb_command, append_to_output_file
 
 # Initialize all loggers
 loggers = initialize_loggers()
 
 # Set output folder and output file path
-upload_dir = paths.ISOLATE_DEVICE_DIR
+upload_dir = settings.ISOLATE_DEVICE_DIR
 output_file_path = os.path.join(upload_dir, "isolation_status.txt")
 
 
