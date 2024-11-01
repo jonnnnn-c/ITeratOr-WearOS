@@ -128,7 +128,9 @@ def main():
             loggers["app"].error("Connection aborted. Exiting...")
             return
         
-        device_detection_thread = threading.Thread(target=connect.detect_devices)
+        current_network_cidr = connect.get_network_ip_cidr(network_interface)
+        #device_detection_thread = threading.Thread(target=connect.detect_devices)
+        device_detection_thread = threading.Thread(target=connect.detect_devices, args=(current_network_cidr,))
         device_detection_thread.daemon = True
         device_detection_thread.start()
         
