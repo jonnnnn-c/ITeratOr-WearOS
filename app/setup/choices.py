@@ -1,4 +1,5 @@
 import json
+import os
 from app.preacquisition import connect
 from app.logs.logger_config import initialize_loggers
 from app.acquisition import device_information, isolate_device, freeze_processes, hash_generator
@@ -112,10 +113,28 @@ def run_hash_generation():
     except Exception as e:
         loggers["app"].error(f"Error during hash generation: {str(e)}")
 
+def check_for_given_file(given_file):
+    """Check for the existence of the given file.
+    Return True if it exists, else return False."""
+    
+    # Check if the settings file exists
+    if not os.path.isfile(given_file):
+        return False  # File does not exist
+    else:
+        return True  # File exists
 
 def settings():
     """Configure user settings and save them to a JSON file."""
     settings_file = 'user_settings.json'
+    
+    # Check and create the settings file if necessary
+    file_exists = check_for_given_file(settings_file)
+    if not file_exists:
+    	# Create the settings file with default values
+        default_settings = {"network_enforcement": "disable"}
+        with open(settings_file, 'w') as file:
+            json.dump(default_settings, file, indent=4)
+        print(f"{settings_file} created with default settings.")
 
     # Initialize a dictionary to hold user settings
     user_settings = {}
