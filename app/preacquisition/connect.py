@@ -4,7 +4,7 @@ import time
 import os
 import ipaddress
 import json
-from netdiscover import *
+from netdiscover import * # type: ignore
 from app.logs.logger_config import initialize_loggers
 from app.setup.choices import exit_program, check_for_given_file
 
@@ -294,8 +294,8 @@ def scan_network(network_interface):
             	loggers["network"].info(f"Network enforcement is disabled. Continuing to log devices.")
 
     except Exception as e:
-    	loggers["network"].error(f"Unexpected error in device detection: {e}")
-    	exit_program()
+        loggers["network"].error(f"Unexpected error in device detection: {e}")
+        exit_program()
 
 def get_default_gateway():
     """Retrieve the default gateway for the device."""

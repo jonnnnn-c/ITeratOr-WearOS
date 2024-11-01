@@ -1,7 +1,6 @@
 import logging
 import os
 import shutil
-import datetime
 import subprocess
 
 # Global variables
@@ -105,18 +104,17 @@ def run_adb_command(command, task):
         result = subprocess.run(
             command,
             check=True,
-            text=False, #default handle as bytes
+            text=False,  # default handle as bytes
             capture_output=True
         )
 
-	
         if "screencap" in command:  # Add other commands that return binary data as needed
             return result.stdout
         else:
-		# Log command used for task
-        	loggers["acquisition"].debug(
-            	f"[SUCCESS] Command succeeded: {' '.join(command)}\n")
-        	return result.stdout.decode('utf-8', errors='replace').strip()
+            # Log command used for task
+            loggers["acquisition"].debug(
+                f"[SUCCESS] Command succeeded: {' '.join(command)}\n")
+            return result.stdout.decode('utf-8', errors='replace').strip()
 
     except subprocess.CalledProcessError as e:
         loggers["acquisition"].error(
@@ -124,18 +122,17 @@ def run_adb_command(command, task):
         return None
 
 
-
 def append_to_output_file(output_file_path, data, action="a", add_newline=True):
     """Append data to the output file with an optional newline."""
     try:
-    	with open(output_file_path,action) as f:
-    		if isinstance(data, bytes):
-    			f.write(data)
-    		else:
-        	    if add_newline:
-        	    	f.write(data +'\n\n')
-	            else:
-	            	f.write(data)
+        with open(output_file_path, action) as f:
+            if isinstance(data, bytes):
+                f.write(data)
+            else:
+                if add_newline:
+                    f.write(data + '\n\n')
+                else:
+                    f.write(data)
     except Exception as e:
         loggers["acquisition"].error(
             f"Failed to write to file {output_file_path}: {e}")

@@ -1,14 +1,14 @@
 import os
 import subprocess
 import hashlib
-from app.setup import paths
+from app.setup import settings
 from app.logs.logger_config import initialize_loggers, run_adb_command, append_to_output_file
 
 # Initialize all loggers
 loggers = initialize_loggers()
 
 # Define paths
-output_file_path = os.path.join(paths.OUTPUT_DIR, "extracted_folders")
+output_file_path = os.path.join(settings.OUTPUT_DIR, "extracted_folders")
 
 def list_directories():
     """List all directories in the ADB file system."""
