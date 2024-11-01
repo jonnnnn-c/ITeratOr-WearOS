@@ -56,7 +56,6 @@ def display_menu(device_name, choice=None):
         "",
         "1. Auto run acquisition commands",
         "2. Manually run acquisition commands",
-        # "3. Extract and Hash directories from ADB",
         "3. Others",  # Placeholder for adb shell or other options
         "4. Download contents retrieved",  # Log and adb pull
         "5. Settings",
@@ -77,8 +76,6 @@ def display_menu(device_name, choice=None):
                 run_auto_acquisition()
             elif choice == "2":
                 run_manual_acquisition()
-            # elif choice == "3":
-            #     run_hash_generation()  # Call the new function
             elif choice == "3":
                 run_other_commands()
             elif choice == "4":
