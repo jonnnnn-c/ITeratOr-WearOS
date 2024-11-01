@@ -1,1 +1,2 @@
 python-netdiscover
+google-generativeai

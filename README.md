@@ -26,24 +26,50 @@ D.	Analysis Phase
 
 ## Getting started
 1. Run a Linux Virtual Environment with 'Virtualize Intel VT-x/EPT or AMD-V/RVI' enabled.
-- https://www.reddit.com/r/vmware/comments/k7hd4z/virtualized_amdvrvi_is_not_supported_on_this/
+    
+    https://www.reddit.com/r/vmware/comments/k7hd4z/virtualized_amdvrvi_is_not_supported_on_this/
 
-2. Start app
+2. Clone the repository
+    ```
+    git clone https://github.com/jonnnnn-c/digital-forensic.git
+    ```
+
+3. Download requirements.txt
     ```
     pip install -r requirements.txt
-    
-    python3 ./main.py (-p | -e)
-    
-    -h: Help
-    -p: Use physical watch
-    -e: Use emulated watch
+    ```
 
-## When developing
-- separate everything into folders and functions to make development easier
-- use the logger.info or logger command to note each critical setp or command used during script execution
-    - https://docs.python.org/3/howto/logging.html
+4. Setup GENAPI key for freeze process function (OPTIONAL)
+    
+    https://aistudio.google.com/app/apikey
+    
+    - Sign in to your google account
+    - Click "Create API key"
+    - Click "Create API key in new project"
+    - Copy api key and put it into the environment as `GENAI_API_KEY="<api_key>"`
+    
+    ```
+    sudo nano ~/.bashrc
+    export GENAI_API_KEY="<api_key>"
+    ```
 
-## Setting up environment
+4. Start app
+    ```
+    usage: main.py [-h] (-p | -e) [-i INTERFACE] [--clear-logs]
+
+    Choose between physical or emulated watch connection.
+
+    options:
+    -h, --help            show this help message and exit
+    -p, --physical        Use physical watch
+    -e, --emulated        Use emulated watch
+    -i INTERFACE, --interface INTERFACE
+                          Specify network interface for physical watch (default is wlan0)
+    --clear-logs          Clear all log files in the output folder
+    ```
+
+
+## Setting up android environment
 1. Create emulators in Android Studio:
 - `x1 Android phone` (e.g., Medium Phone, VanillaIceCream)
 - `x1 WearOS watch` (e.g., Wear OS Large Round, UpsideDownCake)
@@ -86,6 +112,7 @@ D.	Analysis Phase
     emulator -avd <AVD_NAME> -writable-system -snapshot <SNAPSHOT_NAME e.g. snap_1>
     ```
 
+
 ## Setup Wireless Debugging (on physical & emulated) 
 - Enable Developer Mode
     ```
@@ -95,6 +122,7 @@ D.	Analysis Phase
     ```
     Settings > Developer options > Wireless debugging 
     ```
+
 
 ## Log files
 
@@ -108,7 +136,8 @@ The following log files, located in the 'output' folder, provide useful informat
 | `preacquisition.log`   | Network security checks before acquisition.                       |
 | `acquisition.log`      | Actions during acquisition (e.g., memory dumps, process freezing, file extraction). |
 
+
 ## When developing
-- separate everything into folders and functions to make development easier
-- use the logger.info or logger command to note each critical setp or command used during script execution
+- Separate everything into folders and functions to make development easier
+- Use the logger.info or logger command to note each critical setp or command used during script execution
     - https://docs.python.org/3/howto/logging.html

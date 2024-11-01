@@ -2,7 +2,7 @@ import json
 import os
 from app.preacquisition import connect
 from app.logs.logger_config import initialize_loggers
-from app.acquisition import device_information, isolate_device, freeze_processes, hash_generator
+from app.acquisition import device_information, device_isolation, hash_generator, process_analyzer
 
 # Initialize all loggers
 loggers = initialize_loggers()
@@ -12,10 +12,11 @@ def run_auto_acquisition():
     """Run the auto acquisition commands."""
     loggers["app"].info("You selected auto run acquisition.")
 
-    device_information.document_device_state()  # 1
-    isolate_device.isolate_device_state()  # 2
+    device_information.document_device_state() # 1
+    device_isolation.isolate_device_state() # 2
     # 3
-    # freeze_processes.freeze_device_processes()# 6
+    process_analyzer.analyze_device_processes() # 6
+    process_analyzer.freeze_device_processes() # 6
 
 
 def run_manual_acquisition():
@@ -25,8 +26,8 @@ def run_manual_acquisition():
     # Define the categories and their respective functions
     categories = {
         "Device Information": device_information.available_functions(),
-        "Isolate Device": isolate_device.available_functions(),
-        "Freeze Processes": freeze_processes.available_functions()
+        "Isolate Device": device_isolation.available_functions(),
+        "Analyze Processes": process_analyzer.available_functions()
     }
 
     # Display available categories
@@ -85,11 +86,11 @@ def run_manual_acquisition():
         elif selected_category == "Isolate Device":
             loggers["app"].info(
                 f"Executing function: {selected_func_name} in {selected_category}")
-            getattr(isolate_device, selected_func_name)()
-        elif selected_category == "Freeze Processes":
+            getattr(device_isolation, selected_func_name)()
+        elif selected_category == "Analyze Processes":
             loggers["app"].info(
                 f"Executing function: {selected_func_name} in {selected_category}")
-            getattr(freeze_processes, selected_func_name)()
+            getattr(process_analyzer, selected_func_name)()
     except Exception as e:
         loggers["app"].error(
             f"Error executing function {selected_func_name}: {str(e)}")

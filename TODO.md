@@ -3,7 +3,7 @@ IMPORTANT
 - Pull commands
 - backup? (not sure if need)
 - make sure hashes is correct
-- figure out how should freeze process work
+- add a setting to ask if want description for other tables
 
 TO DO
 - consider Root vs non root situations
