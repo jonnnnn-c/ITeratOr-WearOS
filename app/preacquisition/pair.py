@@ -31,7 +31,7 @@ def pair(network_interface):
     success, watch_ip = pair_device()  # Get success status and IP
     if success:
         # Verify the network devices
-        if verify_network_devices(current_device_ip, watch_ip):
+        if verify_network_devices(current_device_ip, watch_ip, network_interface):
             if connect_to_device(watch_ip):
                 return True  # Successfully connected
             else:
