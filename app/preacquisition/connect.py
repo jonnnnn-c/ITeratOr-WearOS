@@ -6,7 +6,7 @@ import ipaddress
 import json
 from netdiscover import *
 from app.logs.logger_config import initialize_loggers
-from app.setup.choices import exit_program
+from app.setup.choices import exit_program, check_for_given_file
 
 # Initialize all loggers
 loggers = initialize_loggers()
@@ -190,12 +190,17 @@ def check_adb_devices():
 
 def load_network_enforcement_setting():
     """Load network enforcement setting from user_settings.json."""
+    settings_file = "user_settings.json"
     try:
-        with open("user_settings.json", "r") as file:
-            settings = json.load(file)
-            return settings.get("network_enforcement", "disable")  # Default to "disable" if not specified
+        with open(settings_file, "r") as file:
+        	settings = json.load(file)
+        	return settings.get("network_enforcement", "disable")  # Default to "disable" if not specified
     except (FileNotFoundError, json.JSONDecodeError) as e:
         loggers["network"].error(f"Error loading user settings: {e}")
+        default_settings = {"network_enforcement": "disable"}
+        with open(settings_file, 'w') as file:
+        	json.dump(default_settings, file, indent=4)
+        	print(f"{settings_file} created with default settings.")
         return "disable"
 
 def get_network_ip_cidr(interface):
