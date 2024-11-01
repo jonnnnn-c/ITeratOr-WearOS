@@ -121,8 +121,8 @@ def settings():
     user_settings = {}
 
     # Prompt user for various settings options
-    user_settings['option1'] = input(
-        "Enter setting for option 1 (e.g., 'enable/disable'): ")
+    user_settings['network_enforcement'] = input(
+        "Enter setting for enforcing network (e.g., 'enable/disable'): ")
     user_settings['option2'] = input(
         "Enter setting for option 2 (e.g., 'high/medium/low'): ")
     user_settings['option3'] = input(
