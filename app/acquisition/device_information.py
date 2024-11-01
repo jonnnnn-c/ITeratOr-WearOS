@@ -1,13 +1,13 @@
 import os
 import subprocess
-from app.setup import paths
+from app.setup import settings
 from app.logs.logger_config import initialize_loggers, run_adb_command, append_to_output_file
 
 # Initialize all loggers
 loggers = initialize_loggers()
 
 # Set output folder and output file path
-upload_dir = paths.DEVICE_INFORMATION_DIR
+upload_dir = settings.DEVICE_INFORMATION_DIR
 output_file_path = os.path.join(upload_dir, "device_information.txt")
 
 
