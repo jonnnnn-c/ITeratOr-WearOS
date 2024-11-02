@@ -1,2 +1,2 @@
-python-netdiscover
-google-generativeai
+python-netdiscover==0.3.0
+google-generativeai==0.8.3
