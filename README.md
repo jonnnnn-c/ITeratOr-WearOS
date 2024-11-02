@@ -53,7 +53,7 @@ D.	Analysis Phase
     export GENAI_API_KEY="<api_key>"
     ```
 
-4. Start app
+5. Start app
     ```
     usage: main.py [-h] (-p | -e) [-i INTERFACE] [--clear-logs]
 
@@ -124,6 +124,55 @@ D.	Analysis Phase
     ```
 
 
+## Faking Package / Process
+You can choose one of the following methods to simulate a running package or process on a WearOS device:
+
+### Running a Background Process in ADB Shell
+To create a simple infinite loop that outputs a message, use the following command in the ADB shell:
+
+```
+adb shell "while true; do echo 'Fake process running'; sleep 60; done" &
+```
+This command will continuously print "Fake process running" every 60 seconds, allowing you to simulate a background process effectively.
+
+### 2. Setting Up a Fake App
+To create a fake app that mimics legitimate behavior on your WearOS device, follow these steps:
+
+1. <b>Create an Empty Wear App in Android Studio:</b>
+
+    - Start a new project in Android Studio and select "Wear OS" as the application type.
+
+2. <b>Modify the App Details:</b>
+
+    - Name: Set the app name to fakewearos (or a name of your choice).
+    - Package Name: Change the package name to com.google.fakewearos.
+        - This choice helps the app blend in with existing packages, making it appear more legitimate compared to the default package name com.example.fakewearos.
+
+3. <b>Rename the Package (if needed):</b>
+    - If you need to rename the package again, refer to this helpful guide: Rename Package in Android Studio.
+
+### 3. Installing an App from the Google Play Store on the Watch
+To install apps directly from the Google Play Store on your WearOS watch, follow these steps:
+
+1. <b>Pair Your Watch with a Phone:</b>
+
+    - Use Android Studio to ensure your WearOS watch is properly paired with an Android phone.
+
+2. <b>Sign In to Your Google Account:</b>
+
+    - On your watch, sign in with your Google account. This process will prompt you to continue on your phone for verification.
+
+3. <b>Download Apps from the Watch:</b>
+
+    - Once your account is set up, you can browse and download any compatible apps directly from the Google Play Store on your watch.
+
+
+## When developing
+- Separate everything into folders and functions to make development easier
+- Use the logger.info or logger command to note each critical setp or command used during script execution
+    - https://docs.python.org/3/howto/logging.html
+
+
 ## Log files
 
 The following log files, located in the 'output' folder, provide useful information about what happened when the tool ran. It captures critical details about the activities that took place during its execution, allowing us to better understand what happened at each stage.
@@ -135,9 +184,3 @@ The following log files, located in the 'output' folder, provide useful informat
 | `network.log`          | Device connection-related events (e.g., connect, pair, disconnect).|
 | `preacquisition.log`   | Network security checks before acquisition.                       |
 | `acquisition.log`      | Actions during acquisition (e.g., memory dumps, process freezing, file extraction). |
-
-
-## When developing
-- Separate everything into folders and functions to make development easier
-- Use the logger.info or logger command to note each critical setp or command used during script execution
-    - https://docs.python.org/3/howto/logging.html
