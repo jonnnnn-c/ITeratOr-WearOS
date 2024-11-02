@@ -4,6 +4,7 @@ import subprocess
 from app.preacquisition import connect
 from app.logs.logger_config import initialize_loggers
 from app.acquisition import device_information, device_isolation, hash_generator, process_analyzer
+from app.setup.settings import *
 
 # Initialize all loggers
 loggers = initialize_loggers()
@@ -228,37 +229,78 @@ def check_for_given_file(given_file):
 
 def settings():
     """Configure user settings and save them to a JSON file."""
-    settings_file = 'user_settings.json'
+    # Load and display current settings
+    current_settings = load_user_settings()
+    loggers["app"].info(f"Current settings loaded from {USER_SETTING}")
+    loggers["app"].info(json.dumps(current_settings))
 
-    # Check and create the settings file if necessary
-    file_exists = check_for_given_file(settings_file)
-    if not file_exists:
-        # Create the settings file with default values
-        default_settings = {"network_enforcement": "disable"}
-        with open(settings_file, 'w') as file:
-            json.dump(default_settings, file, indent=4)
-        print(f"{settings_file} created with default settings.")
+    try:
+        while True:
+            # Prompt user for which setting they want to edit
+            print("\nWhich setting would you like to edit?")
+            print("1. Network Enforcement")
+            print("2. Generate Descriptions")
+            print("0. Exit")
+            choice = input("Enter your choice (1-3): ").strip()
+            print()
+            
+            if choice == '1':
+                network_enforcement = input("Enter setting for enforcing network (e.g., 'enable/disable'): ").strip().lower()
+                while network_enforcement not in ["enable", "disable"]:
+                    print("Invalid input. Please enter 'enable' or 'disable'.")
+                    network_enforcement = input("Enter setting for enforcing network (e.g., 'enable/disable'): ").strip().lower()
 
-    # Initialize a dictionary to hold user settings
-    user_settings = {}
+                current_settings['network_enforcement'] = network_enforcement
+                loggers["app"].info(f"Network enforcement setting updated to '{network_enforcement}'.")
 
-    # Prompt user for various settings options
-    user_settings['network_enforcement'] = input(
-        "Enter setting for enforcing network (e.g., 'enable/disable'): ")
-    user_settings['option2'] = input(
-        "Enter setting for option 2 (e.g., 'high/medium/low'): ")
-    user_settings['option3'] = input(
-        "Enter setting for option 3 (e.g., 'yes/no'): ")
+            elif choice == '2':
+                generate_descriptions = input("Enter setting for generating descriptions (e.g., 'all/unknown'): ").strip().lower()
+                while generate_descriptions not in ["all", "unknown"]:
+                    print("Invalid input. Please enter 'all' or 'unknown'.")
+                    generate_descriptions = input("Enter setting for generating descriptions (e.g., 'all/unknown'): ").strip().lower()
 
-    # Save settings to a JSON file
-    with open(settings_file, 'w') as file:
-        json.dump(user_settings, file, indent=4)
+                current_settings['generate_descriptions'] = generate_descriptions
+                loggers["app"].info(f"Generate descriptions setting updated to '{generate_descriptions}'.")
 
-    print(f"Settings saved to {settings_file}")
+            elif choice == '0':
+                loggers["app"].info("Exiting settings configuration.")
+                break
 
-    # Optionally, you can load and display the settings back to the user
-    print("\nCurrent Settings:")
-    print(json.dumps(user_settings, indent=4))
+            else:
+                print("Invalid choice. Please select a valid option.")
+                loggers["app"].warning("Invalid option selected.")
+
+            # Save updated settings to the JSON file
+            with open(USER_SETTING, 'w') as file:
+                json.dump(current_settings, file, indent=4)
+            
+            loggers["app"].info(f"Settings saved to {USER_SETTING}.")
+            loggers["app"].info(json.dumps(current_settings))
+
+    except KeyboardInterrupt:
+        loggers["app"].info("Settings configuration interrupted by user.\n")
+        
+        # Save updated settings before exiting
+        with open(USER_SETTING, 'w') as file:
+            json.dump(current_settings, file, indent=4)
+        
+        loggers["app"].info("Exiting settings configuration.")
+
+
+def load_user_settings():
+    """
+    Load user settings from a JSON file.
+    """
+    try:
+        with open(USER_SETTING, 'r') as f:
+            settings = json.load(f)
+        return settings
+    except FileNotFoundError:
+        loggers["acquisition"].error("User settings file not found.")
+        return {}
+    except json.JSONDecodeError:
+        loggers["acquisition"].error("Error decoding JSON from user settings file.")
+        return {}
 
 
 def exit_program():

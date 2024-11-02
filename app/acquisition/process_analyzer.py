@@ -1,13 +1,16 @@
 import os
 import json
 import socket
-from app.setup import settings
-import google.generativeai as genai  # type: ignore
+from app.setup import (
+    settings,
+    choices
+)
 from app.logs.logger_config import (
     initialize_loggers,
     run_adb_command,
     append_to_output_file,
 )
+import google.generativeai as genai  # type: ignore
 
 # Initialize all loggers
 loggers = initialize_loggers()
@@ -122,13 +125,17 @@ def search_descriptions(package_names, timeout=15):
 def categorize_processes(processes, system_packages):
     """
     Categorize processes into critical, unknown, and system apps.
-    Retrieve descriptions only if the API key is provided.
+    Retrieve descriptions based on user settings.
     """
     loggers["acquisition"].info("Starting process categorization.\n")
 
     critical_processes = []
     unknown_processes = []
     system_apps = []
+
+    # Load user settings
+    user_settings = choices.load_user_settings()
+    generate_descriptions = user_settings.get("generate_descriptions", "unknown")  # Default to "unknown"
 
     for pid, ppid, user, process_name in processes:
         if ppid == "1" or user in ("root", "system"):
@@ -153,15 +160,51 @@ def categorize_processes(processes, system_packages):
     print()
     if settings.GENAI_API_KEY:
         loggers["acquisition"].info(
-            "API key found. Attempting to retrieve descriptions for unknown processes."
+            "API key found. Attempting to retrieve descriptions for processes."
         )
-        descriptions_list = search_descriptions(
-            [process[3] for process in unknown_processes]
-        )
+
+        # Determine which processes to retrieve descriptions for
+        processes_to_describe = []
+        if generate_descriptions == "all":
+            processes_to_describe = critical_processes + system_apps + unknown_processes
+        elif generate_descriptions == "unknown":
+            processes_to_describe = unknown_processes
+        else:
+            loggers["acquisition"].warning(
+                "Invalid value for generate_descriptions. No descriptions will be retrieved."
+            )
+
+        all_process_names = [process[3] for process in processes_to_describe]
+        descriptions_list = search_descriptions(all_process_names)
         descriptions_dict = {
             item["process_name"]: item["description"] for item in descriptions_list
         }
 
+        # Add descriptions for critical processes
+        if generate_descriptions in ("all",):
+            for i in range(len(critical_processes)):
+                pid, ppid, user, process_name, _ = critical_processes[i]
+                process_description = descriptions_dict.get(
+                    process_name, "No description found"
+                )
+                critical_processes[i] = (pid, ppid, user, process_name, process_description)
+                loggers["acquisition"].debug(
+                    f"Retrieved description for critical process: {process_name}"
+                )
+
+        # Add descriptions for system apps
+        if generate_descriptions in ("all",):
+            for i in range(len(system_apps)):
+                pid, ppid, user, process_name, _ = system_apps[i]
+                process_description = descriptions_dict.get(
+                    process_name, "No description found"
+                )
+                system_apps[i] = (pid, ppid, user, process_name, process_description)
+                loggers["acquisition"].debug(
+                    f"Retrieved description for system app: {process_name}"
+                )
+
+        # Add descriptions for unknown processes
         for i in range(len(unknown_processes)):
             pid, ppid, user, process_name, _ = unknown_processes[i]
             process_description = descriptions_dict.get(
@@ -177,12 +220,21 @@ def categorize_processes(processes, system_packages):
 
     else:
         loggers["acquisition"].warning(
-            "GENAI API key not found. Descriptions will not be retrieved for unknown processes."
+            "GENAI API key not found. Descriptions will not be retrieved for processes."
         )
+        critical_processes = [
+            (pid, ppid, user, process_name, "No description available")
+            for pid, ppid, user, process_name, _ in critical_processes
+        ]
+        system_apps = [
+            (pid, ppid, user, process_name, "No description available")
+            for pid, ppid, user, process_name, _ in system_apps
+        ]
         unknown_processes = [
             (pid, ppid, user, process_name, "No description available")
             for pid, ppid, user, process_name, _ in unknown_processes
         ]
+        
     loggers["acquisition"].info("Process categorization completed.")
     return critical_processes, system_apps, unknown_processes
 
