@@ -1,5 +1,6 @@
-import json
 import os
+import json
+import subprocess
 from app.preacquisition import connect
 from app.logs.logger_config import initialize_loggers
 from app.acquisition import device_information, device_isolation, hash_generator, process_analyzer
@@ -10,13 +11,33 @@ loggers = initialize_loggers()
 
 def run_auto_acquisition():
     """Run the auto acquisition commands."""
+    confirmation = input("Are you sure you want to start the auto acquisition process? (y/n): ").strip().lower()
+    
+    if confirmation != 'y':
+        loggers["app"].info("Auto acquisition canceled by user.")
+        return
+
     loggers["app"].info("You selected auto run acquisition.")
 
-    device_information.document_device_state() # 1
-    device_isolation.isolate_device_state() # 2
-    # 3
-    process_analyzer.analyze_device_processes() # 6
-    process_analyzer.freeze_device_processes() # 6
+    # Log the start of device information commands
+    loggers["acquisition"].info("========== Step 1: Running device information commands ==========")
+    device_information.document_device_state()  # 1: Document the current state of the device
+
+    # Log the start of isolation of device commands
+    loggers["acquisition"].info("========== Step 2: Running isolation of device commands ==========")
+    device_isolation.isolate_device_state()  # 2: Isolate the device to prevent interference during analysis
+
+    # Placeholder for additional steps (3)
+    # loggers["acquisition"].info("========== Step 3: [Description of Step 3] ==========")
+    # 3: Add any additional processing or commands as needed
+
+    # Log the start of process analyzer commands
+    loggers["acquisition"].info("========== Step 6.1: Running process analyzer commands ==========")
+    process_analyzer.analyze_device_processes()  # 6: Analyze the processes running on the device
+
+    # Log the execution of the process freeze command
+    loggers["acquisition"].info("========== Step 6.2: Freezing device processes ==========")
+    process_analyzer.freeze_device_processes()  # 6: Freeze the processes to capture a stable state
 
 
 def run_manual_acquisition():
@@ -97,9 +118,53 @@ def run_manual_acquisition():
         print(f"An error occurred while executing the function: {str(e)}")
 
 
-def run_other_commands():
-    """Run other commands like adb shell."""
-    loggers["app"].info("Running other commands (to be implemented).")
+def run_adb_shell():
+    """Start an interactive adb shell session with real-time command execution and logging."""
+    loggers["app"].info("Starting adb shell session. Type 'exit' to leave the shell.")
+
+    try:
+        # Start adb shell session
+        while True:
+            # Prompt user for command input
+            command = input("adb shell> ").strip()
+            
+            if command.lower() == 'exit':
+                loggers["app"].info("User exited adb shell session.")
+                break
+
+            try:
+                # Log the command and execute it in adb shell
+                loggers["app"].info(f"Executing command: {command}")
+                
+                # Execute the command in adb shell
+                result = subprocess.run(
+                    ['adb', 'shell', command],
+                    capture_output=True,
+                    text=True
+                )
+
+                # Process and print output
+                output = result.stdout.strip()
+                error = result.stderr.strip()
+
+                if output:
+                    loggers["app"].info(f"Output for '{command}': {output}")
+                if error:
+                    print(f"Error: {error}")
+                    loggers["app"].error(f"Error for '{command}': {error}")
+
+            except KeyboardInterrupt:
+                loggers["app"].info("KeyboardInterrupt detected. Exiting adb shell.")
+                break
+
+    except Exception as e:
+        loggers["app"].error(f"Failed to start adb shell session: {str(e)}")
+        print(f"An error occurred: {str(e)}")
+
+    except KeyboardInterrupt:
+        loggers["app"].info("KeyboardInterrupt detected. Exiting adb shell.")
+            
+    loggers["app"].info("ADB shell session closed.")
 
 
 def download_retrieved_content():

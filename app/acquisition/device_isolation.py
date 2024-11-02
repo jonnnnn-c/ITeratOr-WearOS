@@ -243,7 +243,6 @@ def available_functions():
 def isolate_device_state():
     """Document the isolation state of the device."""
     try:
-        loggers["acquisition"].info("2. Running isolation of device commands\n")
         all_functions = available_functions()
 
         # Loop through the dictionary and execute each function

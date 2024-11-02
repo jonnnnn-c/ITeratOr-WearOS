@@ -173,7 +173,6 @@ def available_functions():
 
 def document_device_state():
     """Function to document the initial state of the device."""
-    loggers["acquisition"].info("1. Running device information commands\n")
     all_functions = available_functions()
     
     # Loop through the dictionary and execute each function

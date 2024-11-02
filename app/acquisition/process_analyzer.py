@@ -21,6 +21,7 @@ output_file_path = os.path.join(upload_dir, "process_analyzer_output.txt")
 if settings.GENAI_API_KEY:
     genai.configure(api_key=settings.GENAI_API_KEY)
 
+# ANALYZING STUFF
 
 def get_running_processes():
     """Retrieve the list of running processes."""
@@ -282,8 +283,6 @@ def print_processes_table(
 def analyze_device_processes():
     """Write a table of categorized running processes to a file."""
     try:
-        loggers["acquisition"].info("6. Running process analyzer commands\n")
-
         # Just to help create folder
         available_functions()
         processes = get_running_processes()
@@ -319,6 +318,7 @@ def analyze_device_processes():
             f"An error occurred while analyzing device processes: {e}"
         )
 
+# FREEZING STUFF
 
 def get_packages_to_freeze():
     """Prompt the user to enter package names to freeze, or skip if left blank."""
@@ -417,6 +417,7 @@ def available_functions():
             "analyze_device_processes": "Retrieve table of categorized processes",
             "freeze_device_processes": "Freeze the specified processes based on user input"
         }
+        
     except Exception as e:
         loggers["acquisition"].error(
             f"An error occurred while listing available functions: {e}"

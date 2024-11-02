@@ -50,17 +50,32 @@ def parser_options():
 def display_menu(device_name, choice=None):
     """Display the main menu for the user after successful connection."""
 
-    # TODO: maybe add an option to disable certain commands for auto run (e.g. freeze)
+    # TODO: Maybe add an option to disable certain commands for auto run (e.g., freeze)
     menu_options = [
-        f"You are connected to: {str(device_name)}",
+        " You are connected to: " + str(device_name),
         "",
+        "Acquisition",
         "1. Auto run acquisition commands",
         "2. Manually run acquisition commands",
-        "3. Others",  # Placeholder for adb shell or other options
-        "4. Download contents retrieved",  # Log and adb pull
+        "3. Download contents retrieved",
+        "",
+        "Others",
+        "4. adb shell",
         "5. Settings",
-        "0. Exit",
+        "0. Exit"
     ]
+
+    # Calculate the maximum length for dynamic borders
+    max_length = max(len(option) for option in menu_options)
+    separator_length = max_length + 4  # Adding space for borders
+
+    # Create the equal sign separators for section headers
+    menu_options[2] = f"{'=' * ((separator_length - len(menu_options[2]) - 2) // 2)} {menu_options[2]} {'=' * ((separator_length - len(menu_options[2]) - 2 + 1) // 2)}"
+    menu_options[7] = f"{'=' * ((separator_length - len(menu_options[7]) - 2) // 2)} {menu_options[7]} {'=' * ((separator_length - len(menu_options[7]) - 2 + 1) // 2)}"
+
+    # Add equal sign separators at the start and end
+    menu_options.insert(0, "=" * separator_length)
+    menu_options.insert(2, "=" * separator_length)
 
     while True:
         print_boxed_menu(menu_options)
@@ -77,9 +92,9 @@ def display_menu(device_name, choice=None):
             elif choice == "2":
                 run_manual_acquisition()
             elif choice == "3":
-                run_other_commands()
-            elif choice == "4":
                 download_retrieved_content()
+            elif choice == "4":
+                run_adb_shell()
             elif choice == "5":
                 settings()
             elif choice == "0":
@@ -96,7 +111,8 @@ def display_menu(device_name, choice=None):
 def print_boxed_menu(options):
     """Prints the menu inside a simple ASCII box."""
     max_length = max(len(option) for option in options)
-    border = "+" + "-" * (max_length + 2) + "+"
+    border_length = max_length + 2  # Adding 2 for padding
+    border = "+" + "-" * border_length + "+"  # Use '-' for the top and bottom
 
     print("\n" + border)
     for option in options:
