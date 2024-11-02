@@ -7,6 +7,7 @@ import json
 from netdiscover import *  # type: ignore
 from app.logs.logger_config import initialize_loggers
 from app.setup.choices import exit_program, check_for_given_file
+from app.setup.settings import *
 
 # Initialize all loggers
 loggers = initialize_loggers()
@@ -219,7 +220,7 @@ def check_adb_devices():
 
 def load_network_enforcement_setting():
     """Load network enforcement setting from user_settings.json."""
-    settings_file = "user_settings.json"
+    settings_file = USER_SETTING
     try:
         with open(settings_file, "r") as file:
             settings = json.load(file)
