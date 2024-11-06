@@ -1,7 +1,7 @@
 import os
 import json
 import subprocess
-from app.preacquisition import connect
+from app.preacquisition import network_management
 from app.logs.logger_config import initialize_loggers
 from app.acquisition import device_information, device_isolation, hash_generator, process_analyzer
 from app.setup.settings import *
@@ -306,4 +306,4 @@ def load_user_settings():
 def exit_program():
     """Exit the application."""
     loggers["app"].info("Exiting the application...")
-    connect.disconnect_all_devices()  # Assuming this exists in your codebase
+    network_management.disconnect_all_devices()  # Assuming this exists in your codebase

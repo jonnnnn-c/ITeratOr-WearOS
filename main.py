@@ -5,7 +5,7 @@ from app.logs.logger_config import (
     initialize_loggers,
     clear_output_folder,
 )
-from app.preacquisition import initiate, connect
+from app.preacquisition import initiate, network_management
 from app.setup.choices import *
 
 # Global variables
@@ -142,16 +142,16 @@ def main():
             loggers["app"].error("Connection aborted. Exiting...")
             return
         
-        current_network_cidr = connect.get_network_ip_cidr(network_interface)
+        current_network_cidr = network_management.get_network_ip_cidr(network_interface)
         #device_detection_thread = threading.Thread(target=connect.detect_devices)
-        device_detection_thread = threading.Thread(target=connect.detect_devices, args=(current_network_cidr, watch_ip))
+        device_detection_thread = threading.Thread(target=network_management.detect_devices, args=(current_network_cidr, watch_ip))
         device_detection_thread.daemon = True
         device_detection_thread.start()
         
     elif option.emulated:
         emulated = True
         loggers["app"].info("Selected: Emulated watch")
-        device = connect.check_adb_devices()
+        device = network_management.check_adb_devices()
         
         if len(device) < 1:
             loggers["app"].info("No device found. Exiting")
@@ -177,7 +177,7 @@ def main():
         if emulated:
             display_menu(device_name)
         else:
-            display_menu(connect.get_physical_device_name())
+            display_menu(network_management.get_physical_device_name())
 
     except KeyboardInterrupt:
         loggers["app"].warning("Keyboard Interrupt: Script ended abruptly")

@@ -13,6 +13,37 @@ from app.setup.settings import *
 loggers = initialize_loggers()
 
 
+def check_firmware_version(router_ip):
+    """Check for router firmware version using wget."""
+    try:
+        # Use wget to fetch the router's webpage
+        result = subprocess.run(
+            ['wget', '-qO-', f'http://{router_ip}'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+
+        # Check for common indicators of firmware version in the output
+        output = result.stdout
+        # Adjust regex as needed
+        firmware_version_pattern = r'(?i)firmware.*?(\d+\.\d+\.\d+|\d+)'
+        match = re.search(firmware_version_pattern, output)
+
+        if match:
+            loggers["network"].info(
+                f"Router firmware version found: {match.group(0)}")
+            return match.group(0)  # Return the firmware version
+        else:
+            loggers["network"].error(
+                "Firmware version not found in the router's webpage.")
+            return None
+
+    except subprocess.CalledProcessError as e:
+        loggers["network"].error(f"Error fetching router page: {e}")
+        return None
+
+
 def get_current_network_essid(interface):
     """Retrieve the ESSID of the currently connected wireless network."""
     try:
@@ -49,7 +80,8 @@ def iwlist_security_check(interface, current_network):
             if "Encryption key" in line:
                 encryption_status = line.split(":")[1].strip()
                 if encryption_status == "off":
-                    loggers["network"].error(f"Network: {current_essid}, Encryption is off.")
+                    loggers["network"].error(
+                        f"Network: {current_essid}, Encryption is off.")
                     return False
 
             # Check for encryption type in WPA/WPA2/WPA3
@@ -79,15 +111,14 @@ def iwlist_security_check(interface, current_network):
             return True
 
         # If no secure network is found in scan results
-        loggers["network"].error("Current network not found in scan results or is not secure.")
+        loggers["network"].error(
+            "Current network not found in scan results or is not secure.")
         return False
 
     except subprocess.CalledProcessError as e:
         loggers["network"].error(f"Error scanning with iwlist: {e}")
         return False
 
-
-import re
 
 def is_valid_ip(ip):
     """Validate an IPv4 address."""
@@ -97,15 +128,17 @@ def is_valid_ip(ip):
         return all(0 <= int(part) <= 255 for part in ip.split("."))
     return False
 
+
 def pair_device():
     """Prompt for IP address and port to pair the device using ADB."""
-    
+
     # Start of setup
     print("\n" + "="*50)
-    print("    WearOS smartwatch Pairing Setup")
+    print("WearOS smartwatch Pairing Setup")
     print("="*50)
-    loggers["network"].info("Starting the pairing process with WearOS smartwatch.")
-    
+    loggers["network"].info(
+        "Starting the pairing process with WearOS smartwatch.")
+
     # Provide guidance on obtaining the IP address
     print("\n" + "="*80)
     print("How to find the necessary information to pair with WearOS smartwatch")
@@ -115,7 +148,8 @@ def pair_device():
     print("3. Click 'Pair new device'.")
     print("4. Enter the IP address and port number when prompted.\n")
 
-    loggers["network"].info("Providing instructions to user on obtaining IP address.")
+    loggers["network"].info(
+        "Providing instructions to user on obtaining IP address.")
 
     # Prompt for IP address with validation
     while True:
@@ -128,51 +162,59 @@ def pair_device():
             loggers["network"].info(f"Valid IP address entered: {ip_address}")
             break
         else:
-            loggers["network"].error("Invalid IP address entered. Please enter a valid IPv4 address.")
+            loggers["network"].error(
+                "Invalid IP address entered. Please enter a valid IPv4 address.")
             print("Invalid IP address entered. Please enter a valid IPv4 address.")
 
     # Prompt for port number with validation
     while True:
         port_input = input(
             "\nEnter the port number to pair with the smartwatch:\n"
-            "(Example: (1-65535))\n> "
+            "(Example: [1-65535])\n> "
         ).strip()
-        
+
         if port_input.isdigit():
             port = int(port_input)
             if is_valid_port(port):
                 loggers["network"].info(f"Valid port number entered: {port}")
                 break
             else:
-                loggers["network"].error("Invalid port number entered. Please enter a number between 1 and 65535.")
-                print("Invalid port number entered. Please enter a number between 1 and 65535.")
+                loggers["network"].error(
+                    "Invalid port number entered. Please enter a number between 1 and 65535.")
+                print(
+                    "Invalid port number entered. Please enter a number between 1 and 65535.")
         else:
-            loggers["network"].error("Invalid input for port. Please enter a valid integer.")
+            loggers["network"].error(
+                "Invalid input for port. Please enter a valid integer.")
             print("Invalid input for port. Please enter a valid integer.")
 
     # Attempting pairing using adb
     pair_command = f"{ip_address}:{port}"
-    loggers["network"].info(f"Attempting to pair with device at {pair_command} using ADB.")
+    loggers["network"].info(
+        f"Attempting to pair with device at {pair_command} using ADB.")
     print()
 
     try:
         subprocess.run(['adb', 'pair', pair_command], check=True)
-        loggers["network"].info(f"Successfully paired with device at {ip_address}.")
+        loggers["network"].info(
+            f"Successfully paired with device at {ip_address}.")
         return True, ip_address
     except subprocess.CalledProcessError as e:
-        loggers["network"].error(f"Error pairing with device at {ip_address}: {e}")
+        loggers["network"].error(
+            f"Error pairing with device at {ip_address}: {e}")
         return False, None
 
 
 def connect_to_device(ip_address):
     """Connect to the device using ADB after pairing."""
-    
-        # Start of setup
+
+    # Start of setup
     print("\n" + "="*50)
-    print("    WearOS smartwatch Connection Setup")
+    print("WearOS smartwatch Connection Setup")
     print("="*50)
-    loggers["network"].info("Initiating connection process with WearOS smartwatch.")
-    
+    loggers["network"].info(
+        "Initiating connection process with WearOS smartwatch.")
+
     # Provide guidance on obtaining the IP address
     print("\n" + "="*80)
     print("How to find the necessary information to connect with WearOS smartwatch")
@@ -182,39 +224,44 @@ def connect_to_device(ip_address):
 
     # Prompt for port number with default option
     while True:
-
         port_input = input(
-                "\nEnter the port number to connect with the smartwatch:\n"
-                "(Example: (1-65535))\n> "
-            ).strip()
-        
+            "Enter the port number to connect with the smartwatch:\n"
+            "(Example: [1-65535])\n> "
+        ).strip()
+
         # Use default port 5555 if input is empty
         if port_input == "":
             port = 5555
-            loggers["network"].info("No port entered. Using default port 5555.")
+            loggers["network"].info(
+                "No port entered. Using default port 5555.")
             break
         # Validate and set the port if a valid integer is entered
         elif port_input.isdigit():
             port = int(port_input)
             if is_valid_port(port):
-                loggers["network"].info(f"Using port {port}.")
+                loggers["network"].info(f"Valid port number entered: {port}")
                 break
             else:
-                loggers["network"].error("Invalid port number. Please enter a value between 1 and 65535.")
+                loggers["network"].error(
+                    "Invalid port number. Please enter a value between 1 and 65535.")
                 print("Invalid port number. Please enter a value between 1 and 65535.")
         else:
-            loggers["network"].error("Invalid input for port. Please enter a valid integer.")
+            loggers["network"].error(
+                "Invalid input for port. Please enter a valid integer.")
             print("Invalid input for port. Please enter a valid integer.")
 
     try:
         connect_command = f"{ip_address}:{port}"
-        loggers["network"].info(f"Attempting to connect to device at {connect_command} using ADB.")
-        
+        loggers["network"].info(
+            f"Attempting to connect to device at {connect_command} using ADB.\n")
+
         subprocess.run(['adb', 'connect', connect_command], check=True)
-        loggers["preacquisition"].info(f"Successfully connected to device at {ip_address}.")
+        loggers["network"].info(
+            f"Successfully connected to device at {ip_address}.\n")
         return True  # Return success
     except subprocess.CalledProcessError as e:
-        loggers["preacquisition"].error(f"Error connecting to device at {ip_address}: {e}")
+        loggers["network"].error(
+            f"Error connecting to device at {ip_address}: {e}")
         return False  # Return failure
 
 
@@ -252,13 +299,15 @@ def verify_network_devices(current_device_ip, watch_ip, network_interface):
     # Step 3: Get the default gateway for arp scan and log it
     default_gateway = get_default_gateway()
     if default_gateway:
-        loggers["network"].info(f"Retrieved the default gateway from '{network_interface}': {default_gateway}")
+        loggers["network"].info(
+            f"Retrieved the default gateway from '{network_interface}': {default_gateway}")
 
     if not default_gateway:
         return False  # Return False if default gateway isn't found
 
     # Step 4: Final message
-    loggers["network"].info("Network devices verification completed successfully.")
+    loggers["network"].info(
+        "Network devices verification completed successfully.")
     return True
 
 
@@ -288,46 +337,6 @@ def is_valid_port(port):
     """Validate that the port number is an integer within the valid range."""
     return isinstance(port, int) and 1 <= port <= 65535
 
-
-def check_firmware_version(router_ip):
-    """Check for router firmware version using wget."""
-    try:
-        # Use wget to fetch the router's webpage
-        result = subprocess.run(
-            ['wget', '-qO-', f'http://{router_ip}'],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-
-        # Check for common indicators of firmware version in the output
-        output = result.stdout
-        # Adjust regex as needed
-        firmware_version_pattern = r'(?i)firmware.*?(\d+\.\d+\.\d+|\d+)'
-        match = re.search(firmware_version_pattern, output)
-
-        if match:
-            loggers["network"].info(
-                f"Router firmware version found: {match.group(0)}")
-            return match.group(0)  # Return the firmware version
-        else:
-            loggers["network"].error(
-                "Firmware version not found in the router's webpage.")
-            return None
-
-    except subprocess.CalledProcessError as e:
-        loggers["network"].error(f"Error fetching router page: {e}")
-        return None
-
-
-
-
-
-
-
-
-
-    
 
 def check_adb_devices():
     """Check for connected ADB devices and return a list of device identifiers."""
@@ -403,8 +412,9 @@ def detect_devices(ip_range, smartwatch_ip):
     """Detect devices on the network using python-netdiscover."""
     # Initialize a dictionary to store devices by IP address
     previous_device_ips = {}  # Dictionary to store IPs and their connection status
-    previous_enforcement_setting = load_network_enforcement_setting()  # Initialize previous enforcement setting
-    
+    # Initialize previous enforcement setting
+    previous_enforcement_setting = load_network_enforcement_setting()
+
     while True:
         try:
             # Load the most up-to-date enforcement setting
@@ -412,7 +422,8 @@ def detect_devices(ip_range, smartwatch_ip):
 
             # Check if enforcement setting has changed
             if current_enforcement_setting != previous_enforcement_setting:
-                loggers["network"].info(f"Network enforcement setting changed to: {current_enforcement_setting}")
+                loggers["network"].info(
+                    f"Network enforcement setting changed to: {current_enforcement_setting}")
                 previous_enforcement_setting = current_enforcement_setting  # Update to new setting
 
             # Initialize the network scanner
@@ -435,18 +446,23 @@ def detect_devices(ip_range, smartwatch_ip):
                     if ip not in previous_device_ips:
                         # If enforcement is disabled, log new devices and add them to dictionary
                         if current_enforcement_setting == "disable":
-                            loggers["network"].info(f"New device connected with IP: {ip}. Network enforcement is disabled.")
-                            previous_device_ips[ip] = True  # Mark device as detected
+                            loggers["network"].info(
+                                f"New device connected with IP: {ip}. Network enforcement is disabled.")
+                            # Mark device as detected
+                            previous_device_ips[ip] = True
                     elif current_enforcement_setting == "enable":
                         # If enforcement is enabled and the device is not allowed, abort the script
-                        loggers["network"].error(f"Unauthorized device detected: {ip}. Aborting script...")
+                        loggers["network"].error(
+                            f"Unauthorized device detected: {ip}. Aborting script...")
                         exit_program()
                         os._exit(0)  # Kill the script
 
             # Log changes in device count if the device list has changed
             if set(ip_addresses) != set(previous_device_ips.keys()):
-                loggers["network"].info(f"Devices detected: {current_device_count}")
-                previous_device_ips = {ip: True for ip in ip_addresses}  # Update to current list of IPs
+                loggers["network"].info(
+                    f"Devices detected: {current_device_count}")
+                # Update to current list of IPs
+                previous_device_ips = {ip: True for ip in ip_addresses}
 
             # If enforcement is enabled, check the device count limit
             if current_enforcement_setting == "enable" and current_device_count > 2:
@@ -457,13 +473,15 @@ def detect_devices(ip_range, smartwatch_ip):
                 os._exit(0)  # Kill the script
 
         except Exception as e:
-            loggers["network"].error(f"Unexpected error in device detection: {e}")
+            loggers["network"].error(
+                f"Unexpected error in device detection: {e}")
             exit_program()
 
 
 def scan_network(network_interface, smartwatch_ip):
     """Scan the network for connected devices and enforce network rules."""
-    previous_enforcement_setting = load_network_enforcement_setting()  # Store the initial enforcement setting
+    previous_enforcement_setting = load_network_enforcement_setting(
+    )  # Store the initial enforcement setting
     previous_device_ips = {}
     try:
         # Load the most up-to-date enforcement setting
@@ -471,8 +489,10 @@ def scan_network(network_interface, smartwatch_ip):
 
         # Check if the enforcement setting has changed
         if current_enforcement_setting != previous_enforcement_setting:
-            loggers["network"].info(f"Network enforcement setting changed to: {current_enforcement_setting}")
-            previous_enforcement_setting = current_enforcement_setting  # Update the previous setting
+            loggers["network"].info(
+                f"Network enforcement setting changed to: {current_enforcement_setting}")
+            # Update the previous setting
+            previous_enforcement_setting = current_enforcement_setting
 
         # Initialize the network scanner
         disc = Discover()
@@ -499,17 +519,21 @@ def scan_network(network_interface, smartwatch_ip):
                 if ip not in previous_device_ips:
                     # If enforcement is disabled, log new devices and add them to dictionary
                     if current_enforcement_setting == "disable":
-                        loggers["network"].info(f"Unknown device connected with IP: {ip}. Network enforcement is disabled.")
-                        previous_device_ips[ip] = True  # Mark device as detected
+                        loggers["network"].info(
+                            f"Unknown device connected with IP: {ip}. Network enforcement is disabled.")
+                        # Mark device as detected
+                        previous_device_ips[ip] = True
                 elif current_enforcement_setting == "enable":
                     # If enforcement is enabled and the device is not allowed, abort the script
-                    loggers["network"].error(f"Unauthorized device detected: {ip}. Aborting script...")
+                    loggers["network"].error(
+                        f"Unauthorized device detected: {ip}. Aborting script...")
                     exit_program()
                     os._exit(0)  # Kill the script
 
         # Log changes in device count if the device list has changed
         if len(ip_addresses) != current_device_count:
-            loggers["network"].info(f"Devices detected: {current_device_count}")
+            loggers["network"].info(
+                f"Devices detected: {current_device_count}")
 
         # Check if more than 2 devices are detected and enforcement is enabled
         if current_enforcement_setting == "enable" and current_device_count > 2:
@@ -521,14 +545,9 @@ def scan_network(network_interface, smartwatch_ip):
 
         # Log the enforcement setting status
         if current_enforcement_setting == "disable":
-            loggers["network"].info("Network enforcement is disabled. Continuing to log devices.")
+            loggers["network"].info(
+                "Network enforcement is disabled. Continuing to log devices.")
 
     except Exception as e:
         loggers["network"].error(f"Unexpected error in network scanning: {e}")
         exit_program()
-
-
-
-
-
-
