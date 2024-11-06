@@ -181,6 +181,5 @@ The following log files, located in the 'output' folder, provide useful informat
 |------------------------|-------------------------------------------------------------------|
 | `app.log`              | General app activity (e.g., menu selections, user actions).       |
 | `env_setup.log`        | Environment setup details (e.g., ADB present).                    |
-| `network.log`          | Device connection-related events (e.g., connect, pair, disconnect).|
-| `preacquisition.log`   | Network security checks before acquisition.                       |
+| `network.log`          | Device connection-related events (e.g., connect, disconnect, network security check).|
 | `acquisition.log`      | Actions during acquisition (e.g., memory dumps, process freezing, file extraction). |
