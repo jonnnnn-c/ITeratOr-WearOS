@@ -5,7 +5,7 @@ from app.logs.logger_config import (
     initialize_loggers,
     clear_output_folder,
 )
-from app.preacquisition import pair, connect
+from app.preacquisition import initiate, connect
 from app.setup.choices import *
 
 # Global variables
@@ -136,14 +136,15 @@ def main():
         emulated = False
         network_interface = option.interface
         loggers["app"].info("Selected: Physical watch")
-        loggers["app"].info(f"Using network interface: {network_interface}")
-        if not pair.pair(network_interface):
+        loggers["app"].info(f"Network Interface: {network_interface}\n")
+        success, watch_ip = initiate.initialise(network_interface)
+        if not success:
             loggers["app"].error("Connection aborted. Exiting...")
             return
         
         current_network_cidr = connect.get_network_ip_cidr(network_interface)
         #device_detection_thread = threading.Thread(target=connect.detect_devices)
-        device_detection_thread = threading.Thread(target=connect.detect_devices, args=(current_network_cidr,))
+        device_detection_thread = threading.Thread(target=connect.detect_devices, args=(current_network_cidr, watch_ip))
         device_detection_thread.daemon = True
         device_detection_thread.start()
         
