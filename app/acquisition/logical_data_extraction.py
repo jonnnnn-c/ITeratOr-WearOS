@@ -17,6 +17,7 @@ loggers = initialize_loggers()
 upload_dir = settings.LOGICAL_DATA_EXTRACTION_DIR
 output_file_path = os.path.join(upload_dir, "data_extraction_hashes.txt")
 
+
 def list_directories():
     """List all directories in the ADB file system root."""
     output = run_adb_command(["adb", "shell", "ls", "-d", "/*/"], "Listing all directories")
@@ -64,7 +65,7 @@ def extract_folder(path, description):
         loggers["acquisition"].info(f"{description} extracted from {path}.")
 
         # Now recalculate the hash for the folder after pulling it
-        pulled_folder_path = os.path.join(upload_dir, os.path.basename(path))
+        pulled_folder_path = os.path.join(upload_dir, "extracted_folder")
         pulled_hash = hash_folder(pulled_folder_path)
         loggers["acquisition"].info(f"Recalculated hash for {description} after pull: {pulled_hash}")
 
