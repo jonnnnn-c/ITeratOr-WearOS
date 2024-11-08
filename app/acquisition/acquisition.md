@@ -101,17 +101,17 @@
    - **Action**: Extract relevant data from the device.
    - **Reason**: Capture all persistent data.
 
-6. **Freeze and Suspend Running Processes**:
+6. **Generate Hashes for Extracted Data**:
+   - **Action**: Hash each extracted file/directory.
+   - **Reason**: Demonstrate data integrity.
+
+7. **Freeze and Suspend Running Processes**:
    - **Action**: Freeze processes using `force-stop` or `disable-user`.
    - **Reason**: Prevent changes during acquisition.
 
-7. **Capture Post-Freeze State**:
+8. **Capture Post-Freeze State**:
    - **Action**: Re-capture system logs post-freezing.
    - **Reason**: Validate the freezing process.
-
-8. **Generate Hashes for Extracted Data**:
-   - **Action**: Hash each extracted file/directory.
-   - **Reason**: Demonstrate data integrity.
 
 9. **Extract Log Metadata**:
    - **Action**: Collect timestamps and command details.
