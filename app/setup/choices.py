@@ -3,7 +3,13 @@ import json
 import subprocess
 from app.preacquisition import network_management
 from app.logs.logger_config import initialize_loggers
-from app.acquisition import device_information, device_isolation, hash_generator, process_analyzer
+from app.acquisition import (
+    device_information, 
+    device_isolation, 
+    hash_generator,
+    logical_data_extraction, 
+    process_analyzer
+)
 from app.setup.settings import *
 
 # Initialize all loggers
@@ -21,33 +27,41 @@ def run_auto_acquisition():
 
     loggers["app"].info("You selected auto run acquisition.")
 
-    # Log the start of device information commands
-    loggers["acquisition"].info(
-        "========== Step 1: Running device information commands ==========")
-    # 1: Document the current state of the device
-    device_information.document_device_state()
+    hash_generator.main()
+    
+    # # Log the start of device information commands
+    # loggers["acquisition"].info(
+    #     "========== Step 1: Running device information commands ==========")
+    # # 1: Document the current state of the device
+    # device_information.document_device_state()
 
-    # Log the start of isolation of device commands
-    loggers["acquisition"].info(
-        "========== Step 2: Running isolation of device commands ==========")
-    # 2: Isolate the device to prevent interference during analysis
-    device_isolation.isolate_device_state()
+    # # Log the start of isolation of device commands
+    # loggers["acquisition"].info(
+    #     "========== Step 2: Running isolation of device commands ==========")
+    # # 2: Isolate the device to prevent interference during analysis
+    # device_isolation.isolate_device_state()
 
-    # Placeholder for additional steps (3)
-    # loggers["acquisition"].info("========== Step 3: [Description of Step 3] ==========")
-    # 3: Add any additional processing or commands as needed
+    # # Placeholder for additional steps (3)
+    # # loggers["acquisition"].info("========== Step 3: [Description of Step 3] ==========")
+    # # 3: Add any additional processing or commands as needed
 
-    # Log the start of process analyzer commands
-    loggers["acquisition"].info(
-        "========== Step 6.1: Running process analyzer commands ==========")
-    # 6: Analyze the processes running on the device
-    process_analyzer.analyze_device_processes()
+    # # Log the start of process analyzer commands
+    # loggers["acquisition"].info(
+    #     "========== Step 4, 5, 6: Logical Data Extraction ==========")
+    # # 4, 5, 6: Logical Data Extraction
+    # logical_data_extraction.run_data_extraction()
+    
+    # # Log the start of process analyzer commands
+    # loggers["acquisition"].info(
+    #     "========== Step 7.1: Running process analyzer commands ==========")
+    # # 6: Analyze the processes running on the device
+    # process_analyzer.analyze_device_processes()
 
-    # Log the execution of the process freeze command
-    loggers["acquisition"].info(
-        "========== Step 6.2: Freezing device processes ==========")
-    # 6: Freeze the processes to capture a stable state
-    process_analyzer.freeze_device_processes()
+    # # Log the execution of the process freeze command
+    # loggers["acquisition"].info(
+    #     "========== Step 7.2: Freezing device processes ==========")
+    # # 6: Freeze the processes to capture a stable state
+    # process_analyzer.freeze_device_processes()
 
 
 def run_manual_acquisition():
@@ -59,6 +73,7 @@ def run_manual_acquisition():
         categories = {
             "Device Information": device_information.available_functions(),
             "Isolate Device": device_isolation.available_functions(),
+            "Logical Data Extraction": logical_data_extraction.available_functions(),
             "Analyze Processes": process_analyzer.available_functions()
         }
 
@@ -127,15 +142,19 @@ def run_manual_acquisition():
         try:
             if selected_category == "Device Information":
                 loggers["app"].info(
-                    f"Executing function: {selected_func_name} in {selected_category}")
+                    f"Executing function: {selected_func_name} in {selected_category}\n")
                 getattr(device_information, selected_func_name)()
             elif selected_category == "Isolate Device":
                 loggers["app"].info(
-                    f"Executing function: {selected_func_name} in {selected_category}")
+                    f"Executing function: {selected_func_name} in {selected_category}\n")
                 getattr(device_isolation, selected_func_name)()
+            elif selected_category == "Logical Data Extraction":
+                loggers["app"].info(
+                    f"Executing function: {selected_func_name} in {selected_category}\n")
+                getattr(logical_data_extraction, selected_func_name)()
             elif selected_category == "Analyze Processes":
                 loggers["app"].info(
-                    f"Executing function: {selected_func_name} in {selected_category}")
+                    f"Executing function: {selected_func_name} in {selected_category}\n")
                 getattr(process_analyzer, selected_func_name)()
         except Exception as e:
             loggers["app"].error(

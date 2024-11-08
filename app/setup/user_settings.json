@@ -1,4 +1,5 @@
 {
     "network_enforcement": "disable",
-    "generate_descriptions": "unknown"
+    "generate_descriptions": "unknown",
+    "important_folders": ["/sdcard", "/data/misc", "/data/local/tmp"]
 }

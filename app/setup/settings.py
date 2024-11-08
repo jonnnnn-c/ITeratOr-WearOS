@@ -16,6 +16,7 @@ OUTPUT_DIR = os.path.join(ROOT_DIR, "output/")
 DEVICE_INFORMATION_DIR = os.path.join(OUTPUT_DIR, "device_information/")
 ISOLATE_DEVICE_DIR = os.path.join(OUTPUT_DIR, "isolation_status/")
 ANALYZE_PROCESSES_DIR = os.path.join(OUTPUT_DIR, "analyze_processes/")
+LOGICAL_DATA_EXTRACTION_DIR = os.path.join(OUTPUT_DIR, "logical_data_extraction/")
 
 # User Settings
 USER_SETTING = os.path.join(SETUP_DIR, "user_settings.json")
