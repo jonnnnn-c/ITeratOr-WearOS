@@ -150,6 +150,17 @@ def capture_screenshot():
         loggers["acquisition"].error(e.stderr)
 
 
+def get_packages_information():
+    """Function to capture system logs (logcat)"""
+    dumpsys_package = run_adb_command(
+        ["adb", "shell", "dumpsys", "package"],
+        "Retrieving: package dump information (dumpsys)"
+    )
+    dumpsys_package_path = os.path.join(upload_dir, "dumpsys_package.txt")
+    append_to_output_file(
+        dumpsys_package_path, f"Dumpsys Package Output: {dumpsys_package}", action="w")
+
+
 def available_functions():
     """List of available functions to document device state."""
     if not os.path.exists(upload_dir):
@@ -167,7 +178,8 @@ def available_functions():
         "get_network_connections": "Get current network connections",
         "get_encryption_status": "Capture encryption status",
         "get_system_log": "Capture system logs (logcat)",
-        "capture_screenshot": "Capture a screenshot of the device"
+        "capture_screenshot": "Capture a screenshot of the device",
+        "get_packages_information": "Get information of all packages"
     }
 
 
