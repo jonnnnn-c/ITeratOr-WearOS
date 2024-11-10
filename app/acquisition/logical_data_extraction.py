@@ -96,7 +96,8 @@ def hash_folder(folder_path):
 
         loggers["acquisition"].info(f"Hashing folder: {folder_path}")
         # Use find to get all files in the folder
-        list_command = ["find", folder_path, "-type", "f"]
+        # list_command = ["find", folder_path, "-type", "f"]
+        list_command = ["find", folder_path, "-type", "f", "-o", "-type", "l"]
         file_paths = run_adb_command(list_command, "Listing all files in folder")
 
         if file_paths is None:
@@ -152,7 +153,7 @@ def extract_folder(path, description):
         pulled_folder_path = os.path.join(upload_dir, path.strip("/"), os.path.basename(path))
         pulled_hash = hash_folder(pulled_folder_path)
         loggers["acquisition"].info(f"Recalculated hash for {description} after pull: {pulled_hash}")
-
+        
         # Compare the original hash and the recalculated hash
         if original_hash == pulled_hash:
             loggers["acquisition"].info(f"Hash match: The contents of {description} did not change.")
