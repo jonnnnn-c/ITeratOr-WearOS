@@ -122,6 +122,26 @@ def search_descriptions(package_names, timeout=15):
         ]
 
 
+# Function to get package version
+def get_package_version(package_name):
+    """Retrieve the version of a specific package if available."""
+    try:
+        output = run_adb_command(
+            ["adb", "shell", f"dumpsys package {package_name} | grep versionName"],
+            f"Retrieve version for {package_name}",
+            error=False
+        )
+        if output:
+            version_info = output.split("=")[-1].strip()
+            return version_info
+        else:
+            return "N/A"
+    except Exception as e:
+        loggers["acquisition"].error(f"Failed to retrieve version for package {package_name}: {e}")
+        return "N/A"
+
+
+# Function to categorize processes
 def categorize_processes(processes, system_packages):
     """
     Categorize processes into critical, unknown, and system apps.
@@ -133,114 +153,34 @@ def categorize_processes(processes, system_packages):
     unknown_processes = []
     system_apps = []
 
-    # Load user settings
-    user_settings = choices.load_user_settings()
-    generate_descriptions = user_settings.get("generate_descriptions", "unknown")  # Default to "unknown"
-
     for pid, ppid, user, process_name in processes:
+        # Retrieve version information
+        version = get_package_version(process_name)
+        
         if ppid == "1" or user in ("root", "system"):
-            critical_processes.append((pid, ppid, user, process_name, ""))
+            critical_processes.append((pid, ppid, user, process_name, version, ""))
             loggers["acquisition"].debug(
                 f"Classified as critical process: {process_name} (PID: {pid})"
             )
             continue
 
         if process_name in system_packages:
-            system_apps.append((pid, ppid, user, process_name, ""))
+            system_apps.append((pid, ppid, user, process_name, version, ""))
             loggers["acquisition"].debug(
                 f"Classified as system app: {process_name} (PID: {pid})"
             )
             continue
 
-        unknown_processes.append((pid, ppid, user, process_name, ""))
+        unknown_processes.append((pid, ppid, user, process_name, version, ""))
         loggers["acquisition"].debug(
             f"Classified as unknown process: {process_name} (PID: {pid})"
         )
 
-    print()
-    if settings.GENAI_API_KEY:
-        loggers["acquisition"].info(
-            "API key found. Attempting to retrieve descriptions for processes."
-        )
-
-        # Determine which processes to retrieve descriptions for
-        processes_to_describe = []
-        if generate_descriptions == "all":
-            processes_to_describe = critical_processes + system_apps + unknown_processes
-        elif generate_descriptions == "unknown":
-            processes_to_describe = unknown_processes
-        else:
-            loggers["acquisition"].warning(
-                "Invalid value for generate_descriptions. No descriptions will be retrieved."
-            )
-
-        all_process_names = [process[3] for process in processes_to_describe]
-        descriptions_list = search_descriptions(all_process_names)
-        descriptions_dict = {
-            item["process_name"]: item["description"] for item in descriptions_list
-        }
-
-        # Add descriptions for critical processes
-        if generate_descriptions in ("all",):
-            for i in range(len(critical_processes)):
-                pid, ppid, user, process_name, _ = critical_processes[i]
-                process_description = descriptions_dict.get(
-                    process_name, "No description found"
-                )
-                critical_processes[i] = (pid, ppid, user, process_name, process_description)
-                loggers["acquisition"].debug(
-                    f"Retrieved description for critical process: {process_name}"
-                )
-
-        # Add descriptions for system apps
-        if generate_descriptions in ("all",):
-            for i in range(len(system_apps)):
-                pid, ppid, user, process_name, _ = system_apps[i]
-                process_description = descriptions_dict.get(
-                    process_name, "No description found"
-                )
-                system_apps[i] = (pid, ppid, user, process_name, process_description)
-                loggers["acquisition"].debug(
-                    f"Retrieved description for system app: {process_name}"
-                )
-
-        # Add descriptions for unknown processes
-        for i in range(len(unknown_processes)):
-            pid, ppid, user, process_name, _ = unknown_processes[i]
-            process_description = descriptions_dict.get(
-                process_name, "No description found"
-            )
-            unknown_processes[i] = (pid, ppid, user, process_name, process_description)
-            loggers["acquisition"].debug(
-                f"Retrieved description for unknown process: {process_name}"
-            )
-
-        print()
-        loggers["acquisition"].info("Descriptions retrieval completed.")
-
-    else:
-        loggers["acquisition"].warning(
-            "GENAI API key not found. Descriptions will not be retrieved for processes."
-        )
-        critical_processes = [
-            (pid, ppid, user, process_name, "No description available")
-            for pid, ppid, user, process_name, _ in critical_processes
-        ]
-        system_apps = [
-            (pid, ppid, user, process_name, "No description available")
-            for pid, ppid, user, process_name, _ in system_apps
-        ]
-        unknown_processes = [
-            (pid, ppid, user, process_name, "No description available")
-            for pid, ppid, user, process_name, _ in unknown_processes
-        ]
-        
-    loggers["acquisition"].info("Process categorization completed.")
     return critical_processes, system_apps, unknown_processes
 
 
 def print_processes_table(
-    processes, title, file_path, max_lengths=(10, 10, 15, 50, 80)
+    processes, title, file_path, max_lengths=(5, 5, 10, 45, 20, 50)
 ):
     """Retrieve table of categorized processes."""
     loggers["acquisition"].info(f"Writing table for '{title}' to file: {file_path}")
@@ -249,6 +189,7 @@ def print_processes_table(
         max_ppid_length,
         max_user_length,
         max_name_length,
+        max_vers_length,
         max_desc_length,
     ) = max_lengths
 
@@ -257,19 +198,19 @@ def print_processes_table(
             # Write title and header to file
             file.write(f"\n{title}:\n")
             file.write(
-                f"{'PID':<{max_pid_length}}  {'PPID':<{max_ppid_length}}  {'User':<{max_user_length}}  {'Name':<{max_name_length}}  {'Description'}\n"
+                f"{'PID':<{max_pid_length}}  {'PPID':<{max_ppid_length}}  {'User':<{max_user_length}}  {'Name':<{max_name_length}}  {'Name':<{max_vers_length}}  {'Description'}\n"
             )
             file.write("-" * (sum(max_lengths) + 10) + "\n")
 
             # Print title and header to console
             print(f"\n{title}:")
             print(
-                f"{'PID':<{max_pid_length}}  {'PPID':<{max_ppid_length}}  {'User':<{max_user_length}}  {'Name':<{max_name_length}}  {'Description'}"
+                f"{'PID':<{max_pid_length}}  {'PPID':<{max_ppid_length}}  {'User':<{max_user_length}}  {'Name':<{max_name_length}}  {'Name':<{max_vers_length}}  {'Description'}"
             )
             print("-" * (sum(max_lengths) + 10))
 
             for process in processes:
-                pid, ppid, user, process_name, process_description = process
+                pid, ppid, user, process_name, version, process_description = process
 
                 pid_lines = [
                     pid[i : i + max_pid_length]
@@ -287,6 +228,10 @@ def print_processes_table(
                     process_name[i : i + max_name_length]
                     for i in range(0, len(process_name), max_name_length)
                 ]
+                vers_lines = [
+                    version[i : i + max_vers_length]
+                    for i in range(0, len(version), max_vers_length)
+                ]
                 description_lines = [
                     process_description[i : i + max_desc_length]
                     for i in range(0, len(process_description), max_desc_length)
@@ -297,6 +242,7 @@ def print_processes_table(
                     len(ppid_lines),
                     len(user_lines),
                     len(name_lines),
+                    len(vers_lines),
                     len(description_lines),
                 )
 
@@ -305,18 +251,19 @@ def print_processes_table(
                     ppid_part = ppid_lines[i] if i < len(ppid_lines) else ""
                     user_part = user_lines[i] if i < len(user_lines) else ""
                     name_part = name_lines[i] if i < len(name_lines) else ""
+                    vers_part = vers_lines[i] if i < len(vers_lines) else ""
                     desc_part = (
                         description_lines[i] if i < len(description_lines) else ""
                     )
 
                     # Write each line to the file
                     file.write(
-                        f"{pid_part:<{max_pid_length}}  {ppid_part:<{max_ppid_length}}  {user_part:<{max_user_length}}  {name_part:<{max_name_length}}  {desc_part}\n"
+                        f"{pid_part:<{max_pid_length}}  {ppid_part:<{max_ppid_length}}  {user_part:<{max_user_length}}  {name_part:<{max_name_length}}  {vers_part:<{max_vers_length}}  {desc_part}\n"
                     )
 
                     # Print each line to console
                     print(
-                        f"{pid_part:<{max_pid_length}}  {ppid_part:<{max_ppid_length}}  {user_part:<{max_user_length}}  {name_part:<{max_name_length}}  {desc_part}"
+                        f"{pid_part:<{max_pid_length}}  {ppid_part:<{max_ppid_length}}  {user_part:<{max_user_length}}  {name_part:<{max_name_length}}  {vers_part:<{max_vers_length}}  {desc_part}"
                     )
 
             file.write("-" * (sum(max_lengths) + 10) + "\n")

@@ -94,7 +94,7 @@ def clear_output_folder():
                     f"Deleted the folder and its contents: {subfolder}")
 
 
-def run_adb_command(command, task):
+def run_adb_command(command, task, error=True):
     """Function to run ADB commands and handle errors."""
     try:
         # Log task performed
@@ -115,10 +115,13 @@ def run_adb_command(command, task):
             return result.stdout.decode('utf-8', errors='replace').strip()
 
     except subprocess.CalledProcessError as e:
-        loggers["acquisition"].error(
-            f"[FAILED] Error while running command: {' '.join(command)}\n")
+        if error:
+            loggers["acquisition"].error(
+                f"[FAILED] Error while running command: {' '.join(command)}\n")
+        else:
+            loggers["acquisition"].warning(
+                f"[WARNING] Error while running command: {' '.join(command)}\n")
         return None
-
 
 def append_to_output_file(output_file_path, data, action="a", add_newline=True):
     """Append data to the output file with an optional newline."""
