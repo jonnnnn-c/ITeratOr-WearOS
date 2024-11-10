@@ -1,5 +1,16 @@
 {
     "network_enforcement": "disable",
     "generate_descriptions": "unknown",
-    "important_folders": ["/sdcard", "/data/misc", "/data/local/tmp"]
+    "important_folders": [
+        "/sdcard",
+        "/data/misc",
+        "/data/local/tmp"
+    ],
+    "auto_acquisition_steps": {
+        "device_information": false,
+        "device_isolation": false,
+        "logical_data_extraction": false,
+        "process_analysis": true,
+        "freeze_processes": true
+    }
 }

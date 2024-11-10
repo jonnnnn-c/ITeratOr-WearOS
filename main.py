@@ -50,7 +50,6 @@ def parser_options():
 def display_menu(device_name, choice=None):
     """Display the main menu for the user after successful connection."""
 
-    # TODO: Maybe add an option to disable certain commands for auto run (e.g., freeze)
     menu_options = [
         " You are connected to: " + str(device_name),
         "",

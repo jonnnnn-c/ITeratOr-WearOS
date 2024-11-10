@@ -17,7 +17,7 @@ loggers = initialize_loggers()
 
 
 def run_auto_acquisition():
-    """Run the auto acquisition commands."""
+    """Run the auto acquisition commands based on user settings."""
     confirmation = input(
         "Are you sure you want to start the auto acquisition process? (y/n): ").strip().lower()
 
@@ -27,41 +27,41 @@ def run_auto_acquisition():
 
     loggers["app"].info("You selected auto run acquisition.")
 
-    # hash_generator.main()
-    
-    # Log the start of device information commands
-    loggers["acquisition"].info(
-        "========== Step 1: Running device information commands ==========")
-    # 1: Document the current state of the device
-    device_information.document_device_state()
+    # Load settings to check which steps to run
+    current_settings = load_user_settings()
+    acquisition_steps = current_settings.get("auto_acquisition_steps", {})
 
-    # Log the start of isolation of device commands
-    loggers["acquisition"].info(
-        "========== Step 2: Running isolation of device commands ==========")
-    # 2: Isolate the device to prevent interference during analysis
-    device_isolation.isolate_device_state()
+    # 1: Device Information Step
+    if acquisition_steps.get("device_information", True):
+        loggers["acquisition"].info(
+            "========== Step 1: Running device information commands ==========")
+        device_information.document_device_state()
 
-    # Placeholder for additional steps (3)
-    # loggers["acquisition"].info("========== Step 3: [Description of Step 3] ==========")
-    # 3: Add any additional processing or commands as needed
+    # 2: Device Isolation Step
+    if acquisition_steps.get("device_isolation", True):
+        loggers["acquisition"].info(
+            "========== Step 2: Running isolation of device commands ==========")
+        device_isolation.isolate_device_state()
 
-    # Log the start of process analyzer commands
-    loggers["acquisition"].info(
-        "========== Step 4, 5, 6: Logical Data Extraction ==========")
-    # 4, 5, 6: Logical Data Extraction
-    logical_data_extraction.run_data_extraction()
-    
-    # Log the start of process analyzer commands
-    loggers["acquisition"].info(
-        "========== Step 7.1: Running process analyzer commands ==========")
-    # 6: Analyze the processes running on the device
-    process_analyzer.analyze_device_processes()
+    # 3: Logical Data Extraction Step
+    if acquisition_steps.get("logical_data_extraction", True):
+        loggers["acquisition"].info(
+            "========== Step 3: Running logical data extraction ==========")
+        logical_data_extraction.run_data_extraction()
 
-    # Log the execution of the process freeze command
-    loggers["acquisition"].info(
-        "========== Step 7.2: Freezing device processes ==========")
-    # 6: Freeze the processes to capture a stable state
-    process_analyzer.freeze_device_processes()
+    # 4: Process Analysis Step
+    if acquisition_steps.get("process_analysis", True):
+        loggers["acquisition"].info(
+            "========== Step 4: Running process analysis commands ==========")
+        process_analyzer.analyze_device_processes()
+
+    # 5: Freeze Processes Step
+    if acquisition_steps.get("freeze_processes", True):
+        loggers["acquisition"].info(
+            "========== Step 5: Freezing device processes ==========")
+        process_analyzer.freeze_device_processes()
+
+    loggers["app"].info("Auto acquisition process completed.")
 
 
 def run_manual_acquisition():
@@ -257,10 +257,11 @@ def settings():
         while True:
             # Prompt user for which setting they want to edit
             print("\nWhich setting would you like to edit?")
-            print("1. Network Enforcement")
-            print("2. Generate Descriptions")
+            print("1. Toggle Network Enforcement")
+            print("2. Edit Auto Acquisition Steps")
+            print("3. Toggle GENAI Process Descriptions")
             print("0. Exit")
-            choice = input("Enter your choice (1-3): ").strip()
+            choice = input("Enter your choice (0-3): ").strip()
             print()
             
             if choice == '1':
@@ -273,6 +274,47 @@ def settings():
                 loggers["app"].info(f"Network enforcement setting updated to '{network_enforcement}'.")
 
             elif choice == '2':
+                # Allow user to configure auto acquisition steps
+                print("Configure Auto Acquisition Steps:")
+                
+                # Display the current status of each acquisition step with formatted names
+                for step, enabled in current_settings['auto_acquisition_steps'].items():
+                    formatted_step = step.replace('_', ' ').title()  # Capitalize and replace underscores
+                    status = "enabled" if enabled else "disabled"
+                    print(f" - {formatted_step}: {status}")
+                
+                print("\nEnter the steps you want to enable/disable (comma-separated, e.g., 'Device Information, Process Analysis') or type 'all' to toggle all:")
+                steps_input = input("Steps to toggle (leave blank to skip): ").strip()
+                
+                toggled_steps = []  # To track toggled steps for logging
+
+                if steps_input.lower() == "all":
+                    # Toggle all steps
+                    for step in current_settings['auto_acquisition_steps']:
+                        current_settings['auto_acquisition_steps'][step] = not current_settings['auto_acquisition_steps'][step]
+                        # Log each step that got toggled
+                        new_status = "enabled" if current_settings['auto_acquisition_steps'][step] else "disabled"
+                        toggled_steps.append(f"{step.replace('_', ' ').title()}: {new_status}")
+                else:
+                    # Convert user input back to the original step keys
+                    steps_to_toggle = [step.strip().replace(' ', '_').lower() for step in steps_input.split(',')]
+                    
+                    for step in steps_to_toggle:
+                        if step in current_settings['auto_acquisition_steps']:
+                            current_settings['auto_acquisition_steps'][step] = not current_settings['auto_acquisition_steps'][step]
+                            # Log each step that got toggled
+                            new_status = "enabled" if current_settings['auto_acquisition_steps'][step] else "disabled"
+                            toggled_steps.append(f"{step.replace('_', ' ').title()}: {new_status}")
+                        else:
+                            print(f"Invalid step: {step.replace('_', ' ').title()}. Please enter a valid step name.")
+
+                # Log the toggled steps if any
+                if toggled_steps:
+                    loggers["app"].info(f"Toggled auto acquisition steps: {', '.join(toggled_steps)}")
+                else:
+                    loggers["app"].info(f"nNo steps were toggled.")
+            
+            elif choice == '3':
                 generate_descriptions = input("Enter setting for generating descriptions (e.g., 'all/unknown'): ").strip().lower()
                 while generate_descriptions not in ["all", "unknown"]:
                     print("Invalid input. Please enter 'all' or 'unknown'.")
@@ -280,7 +322,7 @@ def settings():
 
                 current_settings['generate_descriptions'] = generate_descriptions
                 loggers["app"].info(f"Generate descriptions setting updated to '{generate_descriptions}'.")
-
+            
             elif choice == '0':
                 loggers["app"].info("Exiting settings configuration.")
                 break
