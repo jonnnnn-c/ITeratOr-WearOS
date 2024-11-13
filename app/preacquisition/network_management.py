@@ -46,18 +46,6 @@ def check_firmware_version(router_ip):
         loggers["network"].error(f"Error fetching router page: {e}")
         return None
 
-
-# def get_current_network_essid(interface):
-#     """Retrieve the ESSID of the currently connected wireless network."""
-#     try:
-#         # return subprocess.run(
-#         #     ['iwgetid', '-r', interface],
-#         #     capture_output=True, text=True, check=True
-#         # ).stdout.strip() or None
-#     except subprocess.CalledProcessError as e:
-#         loggers["network"].error(f"Error retrieving current ESSID: {e}")
-#         return None
-
 def get_current_network_essid(interface):
     """Retrieve the ESSID of the currently connected wireless network."""
     essid = run_command(['iwgetid', '-r', interface]).strip()
@@ -285,14 +273,18 @@ def connect_to_device(ip_address):
 def get_default_gateway():
     """Retrieve the default gateway for the device."""
     try:
-        result = subprocess.run(
-            ['ip', 'route'], capture_output=True, text=True, check=True
-        )
-        for line in result.stdout.splitlines():
+        # result = subprocess.run(
+        #     ['ip', 'route'], capture_output=True, text=True, check=True
+        # )
+        result = run_command(['ip', 'route'])
+        for line in result.splitlines():
             if 'default' in line:
                 # The third field is the default gateway IP
                 default_gateway = line.split()[2]
                 return default_gateway
+            else:
+                loggers["network"].error(f"Error retrieving default gateway")
+                return None
     except subprocess.CalledProcessError as e:
         loggers["network"].error(f"Error retrieving default gateway: {e}")
     return None
