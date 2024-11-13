@@ -6,10 +6,11 @@ from app.logs.logger_config import initialize_loggers
 # Initialize all loggers
 loggers = initialize_loggers()
 
+
 def run_netdiscover(interface, network_ip, timeout=10):
     """
     Runs netdiscover on the given network interface and returns a list of IP, MAC, and Vendor information.
-    
+
     :param interface: Network interface to scan (e.g., wlan0)
     :param network_ip: Network IP range to scan (e.g., 192.168.1.0/24)
     :param timeout: Timeout for the netdiscover command (default: 10 seconds)
@@ -17,17 +18,20 @@ def run_netdiscover(interface, network_ip, timeout=10):
     """
     # Command to run netdiscover
     command = ["sudo", "netdiscover", "-i", interface, "-r", network_ip, "-P"]
-    loggers["network"].info(f"Running netdiscover on interface '{interface}' for network '{network_ip}' with timeout {timeout} seconds.")
-    
+    loggers["network"].info(
+        f"Running netdiscover on interface '{interface}' for network '{network_ip}' with timeout {timeout} seconds.")
+
     # Run netdiscover and capture the output
     try:
-        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=timeout)
+        result = subprocess.run(command, stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE, text=True, timeout=timeout)
         output = result.stdout
-        
+
         # Check if the command returned an error
         if result.stderr:
-            loggers["network"].warning(f"Netdiscover encountered an error:\n{result.stderr}")
-            
+            loggers["network"].warning(
+                f"Netdiscover encountered an error:\n{result.stderr}")
+
     except subprocess.TimeoutExpired:
         loggers["network"].error("Netdiscover command timed out!")
         return []
