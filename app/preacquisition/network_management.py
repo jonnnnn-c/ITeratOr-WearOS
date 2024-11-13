@@ -57,10 +57,9 @@ def get_current_network_essid(interface):
 def iwlist_security_check(interface, current_network):
     """Use iwlist to check Wi-Fi protocol and encryption key status."""
     try:
+        loggers["network"].info(f"Starting Wi-Fi security check on interface '{interface}' for network '{current_network}'.")
+
         # Run the iwlist scan and capture the output
-        # result = subprocess.run(
-        #     ['iwlist', interface, 'scan'], capture_output=True, text=True, check=True
-        # )
         result = run_command(['iwlist', interface, 'scan'])
         
         secure_network_found = False
@@ -69,22 +68,32 @@ def iwlist_security_check(interface, current_network):
         for line in result.splitlines():
             # Check for ESSID line
             if "ESSID" in line:
-                current_essid = line.split(":")[1].strip().strip('"')
-
-                # Skip if ESSID is invalid or empty
-                if not current_essid or any(char < ' ' for char in current_essid):
+                essid_value = line.split("ESSID:", 1)[1].strip().strip('"')
+                
+                # Skip and log empty or invalid ESSIDs
+                if not essid_value:
+                    loggers["network"].warning("Detected network with empty ESSID. Skipping.")
+                    current_essid = None  # Set to None to ensure clarity
                     continue
+                else:
+                    current_essid = essid_value
+                    loggers["network"].info(f"Detected network: '{current_essid}'")
 
-            # Check for encryption key line
-            if "Encryption key" in line:
-                encryption_status = line.split(":")[1].strip()
+            # Check for encryption key line only if ESSID is valid
+            if current_essid and "Encryption key" in line:
+                encryption_status = line.split("Encryption key:", 1)[1].strip()
                 if encryption_status == "off":
                     loggers["network"].error(
-                        f"Network: {current_essid}, Encryption is off.")
+                        f"Network '{current_essid}' detected, but encryption is off. Connection is insecure."
+                    )
                     return False
+                else:
+                    loggers["network"].info(
+                        f"Network '{current_essid}' has encryption enabled."
+                    )
 
-            # Check for encryption type in WPA/WPA2/WPA3
-            if "IE:" in line and current_essid == current_network:
+            # Check for encryption type in WPA/WPA2/WPA3 only if ESSID is valid
+            if current_essid == current_network and "IE:" in line:
                 if "WPA3" in line:
                     encryption_type = "WPA3"
                 elif "WPA2" in line:
@@ -97,7 +106,7 @@ def iwlist_security_check(interface, current_network):
                 # Log and mark as secure if encryption type is identified
                 if encryption_type != "Unknown":
                     loggers["network"].info(
-                        f"Network: {current_essid}, Encryption: {encryption_type}"
+                        f"Network '{current_essid}' uses {encryption_type} encryption."
                     )
                     secure_network_found = True
                     break  # Stop once the desired network is verified
@@ -105,18 +114,20 @@ def iwlist_security_check(interface, current_network):
         # Final check if network is secure
         if secure_network_found and current_essid == current_network:
             loggers["network"].info(
-                f"Current network {current_network} is secure with {encryption_type} encryption."
+                f"Current network '{current_network}' is secure with {encryption_type} encryption."
             )
             return True
 
         # If no secure network is found in scan results
         loggers["network"].error(
-            "Current network not found in scan results or is not secure.")
+            f"Current network '{current_network}' not found in scan results or is not secure."
+        )
         return False
 
     except subprocess.CalledProcessError as e:
-        loggers["network"].error(f"Error scanning with iwlist: {e}")
+        loggers["network"].error(f"Error during Wi-Fi scan on interface '{interface}': {e}")
         return False
+
 
 
 def is_valid_ip(ip):
