@@ -8,7 +8,7 @@ from netdiscover import *  # type: ignore
 from app.logs.logger_config import initialize_loggers
 from app.setup.choices import exit_program, check_for_given_file
 from app.setup.settings import *
-from app.preacquisition.test import *
+from app.preacquisition.run_netdiscover import *
 from app.setup.setup_environment import *
 from app.logs.logger_config import run_adb_command
 
