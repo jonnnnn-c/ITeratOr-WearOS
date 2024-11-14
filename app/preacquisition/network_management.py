@@ -3,6 +3,7 @@ import subprocess
 import os
 import ipaddress
 import json
+import time
 
 from prettytable import PrettyTable # type: ignore
 from netdiscover import *  # type: ignore
@@ -11,6 +12,7 @@ from app.setup.choices import exit_program, check_for_given_file
 from app.setup.settings import *
 from app.preacquisition.run_netdiscover import *
 from app.setup.setup_environment import *
+from app.setup.choices import *
 
 # Initialize all loggers
 loggers = initialize_loggers()
@@ -89,7 +91,7 @@ def get_wifi_networks(interface='wlan0'):
         # Run iwlist scan commands
         scan_result = run_network_command(
             ['sudo', 'iwlist', interface, 'scan'])
-        loggers["network"].debug(f"iwlist scan output:\n{scan_result}")
+        # loggers["network"].debug(f"iwlist scan output:\n{scan_result}")
         return parse_iwlist_output(scan_result)
     except subprocess.CalledProcessError as e:
         print(f"Error: {e}")
@@ -380,11 +382,11 @@ def connect_to_device(ip_address):
 def get_default_gateway():
     """Retrieve the default gateway for the device."""
     try:
-        # result = subprocess.run(
-        #     ['ip', 'route'], capture_output=True, text=True, check=True
-        # )
-        result = run_network_command(['ip', 'route'])
-        for line in result.splitlines():
+        result = subprocess.run(
+            ['ip', 'route'], capture_output=True, text=True, check=True
+        )
+        # result = run_network_command(['ip', 'route'])
+        for line in result.stdout.splitlines():
             if 'default' in line:
                 # The third field is the default gateway IP
                 default_gateway = line.split()[2]
@@ -414,9 +416,6 @@ def verify_network_devices(current_device_ip, watch_ip, network_interface):
 
     # Step 3: Get the default gateway for arp scan and log it
     default_gateway = get_default_gateway()
-    if default_gateway:
-        loggers["network"].info(
-            f"Default gateway set on interface '{network_interface}': {default_gateway}")
 
     if not default_gateway:
         return False  # Return False if default gateway isn't found
@@ -437,13 +436,15 @@ def get_physical_device_name():
         # )
         output = run_network_command(
             ["adb", "shell", "getprop", "ro.product.model"])
-        if output.strip():
+        if output:
             loggers["acquisition"].info(
                 f"Successfully retrieved device name: {output.strip()}")
-        return output.strip()
+            return output.strip()
+        else:
+            return False
     except subprocess.CalledProcessError as e:
         loggers["acquisition"].error(f"Failed to get device name: {e}")
-        return "Unknown Device"
+        return False
 
 
 def disconnect_all_devices():
@@ -480,21 +481,21 @@ def check_adb_devices():
         return []
 
 
-def load_network_enforcement_setting():
-    """Load network enforcement setting from user_settings.json."""
-    settings_file = USER_SETTING
-    try:
-        with open(settings_file, "r") as file:
-            settings = json.load(file)
-            # Default to "disable" if not specified
-            return settings.get("network_enforcement", "disable")
-    except (FileNotFoundError, json.JSONDecodeError) as e:
-        loggers["network"].error(f"Error loading user settings: {e}")
-        default_settings = {"network_enforcement": "disable"}
-        with open(settings_file, 'w') as file:
-            json.dump(default_settings, file, indent=4)
-            print(f"{settings_file} created with default settings.")
-        return "disable"
+# def load_network_enforcement_setting():
+    # """Load network enforcement setting from user_settings.json."""
+    # settings_file = USER_SETTING
+    # try:
+    #     with open(settings_file, "r") as file:
+    #         settings = json.load(file)
+    #         # Default to "disable" if not specified
+    #         return settings.get("network_enforcement", "disable")
+    # except (FileNotFoundError, json.JSONDecodeError) as e:
+    #     loggers["network"].error(f"Error loading user settings: {e}")
+    #     default_settings = {"network_enforcement": "disable"}
+    #     with open(settings_file, 'w') as file:
+    #         json.dump(default_settings, file, indent=4)
+    #         print(f"{settings_file} created with default settings.")
+    #     return "disable"
 
 
 def get_network_ip_cidr(interface):
@@ -534,18 +535,14 @@ def detect_devices(ip_range, smartwatch_ip, network_interface):
     """
     Continuously monitor the network for unauthorized devices and enforce network rules.
     """
-    # Retrieve IP range for the network interface
-    # ip_range = get_network_ip_cidr(network_interface)
-    # loggers["network"].info(f"Starting device detection on IP range: {ip_range}")
-
-    # Load initial enforcement setting
-    previous_enforcement_setting = load_network_enforcement_setting()
-    detected_device_ips = set()  # Set to store detected device IPs
-
+    previous_enforcement_setting = load_user_settings().get("network_enforcement")
+    def_gateway = get_default_gateway()
+    allowed_ips = [smartwatch_ip, def_gateway]
     while True:
         try:
             # Load the latest enforcement setting
-            current_enforcement_setting = load_network_enforcement_setting()
+            time.sleep(1)
+            current_enforcement_setting = load_user_settings().get("network_enforcement")
 
             # Log if the enforcement setting has changed
             if current_enforcement_setting != previous_enforcement_setting:
@@ -553,32 +550,39 @@ def detect_devices(ip_range, smartwatch_ip, network_interface):
                     f"Network enforcement setting changed to: {current_enforcement_setting}")
                 previous_enforcement_setting = current_enforcement_setting
 
+            if current_enforcement_setting == "disable":
+                continue
+            
             # Perform a network scan
-            devices = run_netdiscover(network_interface, ip_range, 30)
+            devices = run_netdiscover(network_interface, ip_range, 10)
             ip_addresses = {device[0] for device in devices}
             current_device_count = len(ip_addresses)
+            unauthorized_devices = []
 
-            # Define allowed IPs
-            def_gateway = get_default_gateway()
-            allowed_ips = {smartwatch_ip, def_gateway}
-            unauthorized_devices = [
-                ip for ip in ip_addresses if ip not in allowed_ips]
+            #one liner for unauthorized devices
+            # unauthorized_devices = [(ip, mac, vendor_name) for ip, mac, vendor_name in [(device[0], device[1], ' '.join(device[2].strip().split()[2:])) for device in devices] if ip not in allowed_ips]
+
+            for device in devices:
+                ip, mac, vendor = device[0], device[1], device[2].strip()  # Remove any leading/trailing whitespace
+                # Extract only the vendor name after any unnecessary numbers or whitespace
+                vendor_name = ' '.join(vendor.split()[2:])  # Assuming vendor name starts after first two entries
+                if ip not in allowed_ips:
+                    # Track unauthorized devices
+                    unauthorized_devices.append((ip, mac, vendor_name))
 
             # Log any unauthorized devices detected
-            if unauthorized_devices:
-                loggers["network"].info(
-                    f"Unauthorized devices detected: {unauthorized_devices}")
-                if current_enforcement_setting == "enable":
-                    loggers["network"].error(
-                        "Enforcement enabled: Unauthorized devices detected. Aborting...")
-                    exit_program()
-                    os._exit(0)  # Terminate the script immediately
-
+            if unauthorized_devices and current_enforcement_setting == "enable":
+                for device in unauthorized_devices:
+                    loggers["network"].info(
+                        f"Unauthorized Device Detected - IP: {device[0]}, MAC: {device[1]}, Vendor: {device[2]}")
+                exit_program()
+                os._exit(0)  # Terminate the script immediately
+                
             # Log any change in the number of detected devices
-            if detected_device_ips != ip_addresses:
-                loggers["network"].info(
-                    f"Device count changed: {current_device_count} devices detected.")
-                detected_device_ips = ip_addresses
+            # if detected_device_ips != ip_addresses:
+            #     loggers["network"].info(
+            #         f"Device count changed: {current_device_count} devices detected.")
+            #     detected_device_ips = ip_addresses
 
             # Check device count limit if enforcement is enabled
             if current_enforcement_setting == "enable" and current_device_count > 2:
@@ -623,14 +627,15 @@ def scan_network(network_interface, smartwatch_ip):
 
     # Set initial network enforcement setting to 'disable' for first-time users
     current_enforcement_setting = "disable"
-
+    timeout = 30
     try:
         # Retrieve the IP range for the specified network interface
         ip_range = get_network_ip_cidr(network_interface)
         loggers["network"].info(f"Scanning IP range: {ip_range}")
 
         # Perform the network scan and retrieve details of each device
-        devices = run_netdiscover(network_interface, ip_range, 30)
+        devices = run_netdiscover(network_interface, ip_range, timeout)
+        loggers["network"].info(f"Running netdiscover on interface '{network_interface}' for network '{ip_range}' with timeout {timeout} seconds.")
 
         # Allowed IPs: smartwatch, and default gateway
         def_gateway = get_default_gateway()
@@ -641,12 +646,16 @@ def scan_network(network_interface, smartwatch_ip):
 
         # Check each detected device for authorization
         for device in devices:
-            ip, mac, vendor = device[0], device[1], device[2]
+            ip, mac, vendor = device[0], device[1], device[2].strip()  # Remove any leading/trailing whitespace
+            # Extract only the vendor name after any unnecessary numbers or whitespace
+            vendor_name = ' '.join(vendor.split()[2:])  # Assuming vendor name starts after first two entries
+
             if ip not in allowed_ips:
                 # Track unauthorized devices
-                unauthorized_devices.append((ip, mac, vendor))
+                unauthorized_devices.append((ip, mac, vendor_name))
                 loggers["network"].info(
-                    f"Detected Device - IP: {ip}, MAC: {mac}, Vendor: {vendor}")
+                    f"Detected Device - IP: {ip}, MAC: {mac}, Vendor: {vendor_name}")
+
 
         # Log the total number of detected devices
         current_device_count = len(devices)
@@ -658,8 +667,12 @@ def scan_network(network_interface, smartwatch_ip):
             unauthorized_ips = [ip for ip, _, _ in unauthorized_devices]
             loggers["network"].info(
                 f"Unauthorized devices detected: {unauthorized_ips}")
-            user_input = input(
-                "Extra devices detected. Leave empty to continue, or type 'no' to abort: ").strip().lower()
+            
+            user_input = get_valid_input(
+                "Extra devices detected. Leave empty to continue, or type 'no' to abort: ",
+                valid_choices=["", "no"],
+                allow_empty=True
+            )
             if user_input == "no":
                 loggers["network"].info(
                     "User aborted due to unauthorized devices.")
@@ -684,8 +697,11 @@ def scan_network(network_interface, smartwatch_ip):
 
         # If no unauthorized devices and the enforcement is not triggered, ask user to enable/disable enforcement
         if not unauthorized_devices:
-            user_input = input(
-                f"Network enforcement is currently '{current_enforcement_setting}'. Do you want to enable or disable it? (leave empty to continue): ").strip().lower()
+            user_input = get_valid_input(
+                f"Network enforcement is currently '{current_enforcement_setting}'. Do you want to enable or disable it? (leave empty to continue): ",
+                valid_choices=["", "enable", "disable"],
+                allow_empty=True
+            )
             if user_input == "enable":
                 current_enforcement_setting = "enable"
                 loggers["network"].info("Network enforcement enabled.")
@@ -704,3 +720,14 @@ def scan_network(network_interface, smartwatch_ip):
     except Exception as e:
         loggers["network"].error(f"Unexpected error in network scanning: {e}")
         exit_program()
+
+def get_valid_input(prompt, valid_choices, allow_empty=True):
+    """Helper function to get a valid user input from a set of valid choices."""
+    while True:
+        user_input = input(prompt).strip().lower()
+        if user_input == "" and allow_empty:
+            return ""  # Return empty string if empty input is allowed
+        elif user_input in valid_choices:
+            return user_input
+        else:
+            print(f"Invalid input. Please choose from {valid_choices}.")

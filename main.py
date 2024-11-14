@@ -176,7 +176,12 @@ def main():
         if emulated:
             display_menu(device_name)
         else:
-            display_menu(network_management.get_physical_device_name())
+            device_name = network_management.get_physical_device_name()
+            if device_name:
+                display_menu(device_name)
+            else:
+                loggers["app"].error("Unable to retrieve physical device name, please ensure you entered the correct port.")
+                exit_program()
 
     except KeyboardInterrupt:
         loggers["app"].warning("Keyboard Interrupt: Script ended abruptly")

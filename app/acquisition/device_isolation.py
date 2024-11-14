@@ -42,17 +42,40 @@ def enable_airplane_mode():
             ["adb", "shell", "settings", "put", "global", "airplane_mode_on", "1"],
             "Enabling airplane mode"
         )
-        run_adb_command(
-            ["adb", "shell", "am", "broadcast", "-a", "android.intent.action.AIRPLANE_MODE"],
-            "Broadcasting airplane mode intent"
-        )
+        # run_adb_command(
+        #     ["adb", "shell", "am", "broadcast", "-a", "android.intent.action.AIRPLANE_MODE"],
+        #     "Broadcasting airplane mode intent"
+        # )
         append_to_output_file(output_file_path, "Airplane mode enabled.")
     
+        enable_wifi()
+        
     except AttributeError as e:
         loggers["acquisition"].error(f"Failed to retrieve airplane mode status: {e}")
     except Exception as e:
         loggers["acquisition"].error(f"An error occurred while enabling airplane mode: {e}")
 
+def enable_wifi():
+    """Enable WiFi on the device."""
+    try:
+        original_value = run_adb_command(
+            ["adb", "shell", "settings", "get", "global", "wifi_on"],
+            "Retrieving original WiFi status"
+        ).strip()
+
+        status = "WiFi is ON" if original_value == "1" else "WiFi is OFF"
+        append_to_output_file(output_file_path, f"Original WiFi Status: {status}")
+        
+        run_adb_command(
+            ["adb", "shell", "svc", "wifi", "enable"],
+            "Enabling WiFi"
+        )
+        append_to_output_file(output_file_path, "WiFi Enabled.")
+    
+    except AttributeError as e:
+        loggers["acquisition"].error(f"Failed to retrieve WiFi status: {e}")
+    except Exception as e:
+        loggers["acquisition"].error(f"An error occurred while disabling WiFi: {e}")
 
 def disable_mobile_data():
     """Disable mobile data on the device."""
@@ -109,27 +132,27 @@ def disable_bluetooth():
         loggers["acquisition"].error(f"An error occurred while disabling Bluetooth: {e}")
 
 
-def disable_wifi():
-    """Disable WiFi on the device."""
-    try:
-        original_value = run_adb_command(
-            ["adb", "shell", "settings", "get", "global", "wifi_on"],
-            "Retrieving original WiFi status"
-        ).strip()
+# def disable_wifi():
+#     """Disable WiFi on the device."""
+#     try:
+#         original_value = run_adb_command(
+#             ["adb", "shell", "settings", "get", "global", "wifi_on"],
+#             "Retrieving original WiFi status"
+#         ).strip()
 
-        status = "WiFi is OFF" if original_value == "0" else "WiFi is ON"
-        append_to_output_file(output_file_path, f"Original WiFi Status: {status}")
+#         status = "WiFi is OFF" if original_value == "0" else "WiFi is ON"
+#         append_to_output_file(output_file_path, f"Original WiFi Status: {status}")
         
-        run_adb_command(
-            ["adb", "shell", "svc", "wifi", "disable"],
-            "Disabling WiFi"
-        )
-        append_to_output_file(output_file_path, "WiFi disabled.")
+#         run_adb_command(
+#             ["adb", "shell", "svc", "wifi", "disable"],
+#             "Disabling WiFi"
+#         )
+#         append_to_output_file(output_file_path, "WiFi disabled.")
     
-    except AttributeError as e:
-        loggers["acquisition"].error(f"Failed to retrieve WiFi status: {e}")
-    except Exception as e:
-        loggers["acquisition"].error(f"An error occurred while disabling WiFi: {e}")
+#     except AttributeError as e:
+#         loggers["acquisition"].error(f"Failed to retrieve WiFi status: {e}")
+#     except Exception as e:
+#         loggers["acquisition"].error(f"An error occurred while disabling WiFi: {e}")
 
 
 def disable_location_services():
@@ -228,7 +251,7 @@ def available_functions():
             "enable_airplane_mode": "Enable airplane mode on the device",
             "disable_mobile_data": "Disable mobile data on the device",
             "disable_bluetooth": "Disable Bluetooth on the device",
-            "disable_wifi": "Disable WiFi on the device",
+            # "disable_wifi": "Disable WiFi on the device",
             "disable_location_services": "Disable location services",
             "set_max_screen_timeout": "Set screen timeout to maximum value (24 hours)",
             "set_max_watchface_timeout": "Set 'Go to watch face' timeout to maximum (1 hour)",

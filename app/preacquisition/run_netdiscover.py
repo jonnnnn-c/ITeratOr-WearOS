@@ -18,8 +18,7 @@ def run_netdiscover(interface, network_ip, timeout=10):
     """
     # Command to run netdiscover
     command = ["sudo", "netdiscover", "-i", interface, "-r", network_ip, "-P"]
-    loggers["network"].info(
-        f"Running netdiscover on interface '{interface}' for network '{network_ip}' with timeout {timeout} seconds.")
+    # loggers["network"].info(f"Running netdiscover on interface '{interface}' for network '{network_ip}' with timeout {timeout} seconds.")
 
     # Run netdiscover and capture the output
     try:
