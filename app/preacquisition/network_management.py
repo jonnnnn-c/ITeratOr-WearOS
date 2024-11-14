@@ -4,130 +4,213 @@ import time
 import os
 import ipaddress
 import json
+
+from prettytable import PrettyTable
 from netdiscover import *  # type: ignore
 from app.logs.logger_config import initialize_loggers
 from app.setup.choices import exit_program, check_for_given_file
 from app.setup.settings import *
 from app.preacquisition.run_netdiscover import *
 from app.setup.setup_environment import *
-from app.logs.logger_config import run_adb_command
 
 # Initialize all loggers
 loggers = initialize_loggers()
 
 
-def check_firmware_version(router_ip):
+def run_network_command(command):
+    """Function to run system commands with error handling"""
+
+    try:
+        result = subprocess.run(command, check=True, text=True, capture_output=True)
+
+        loggers["network"].info(f"Command succeeded: {' '.join(command)}")
+        return result.stdout  # Return True if the command completed successfully
+
+    except subprocess.CalledProcessError as e:
+        loggers["network"].error(f"Error while running command: {' '.join(command)}, error: {e.stderr}")
+        # loggers["network"].error(e.stderr)  # This will work as 'e' is defined in the 'except' block
+        return False  # Return False if an exception was raised
+
+
+import re
+import subprocess
+
+def check_firmware_version(router_ip, router_port):
     """Check for router firmware version using wget."""
     try:
-        # Use wget to fetch the router's webpage
-        result = subprocess.run(
-            ['wget', '-qO-', f'http://{router_ip}'],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-
+        # Construct the URL with the provided IP and port
+        url = f'http://{router_ip}:{router_port}'
+        result = run_network_command(['wget', '-qO-', url])
+        
         # Check for common indicators of firmware version in the output
-        output = result.stdout
-        # Adjust regex as needed
-        firmware_version_pattern = r'(?i)firmware.*?(\d+\.\d+\.\d+|\d+)'
-        match = re.search(firmware_version_pattern, output)
-
-        if match:
-            loggers["network"].info(
-                f"Router firmware version found: {match.group(0)}")
-            return match.group(0)  # Return the firmware version
+        output = result
+        if output:
+            # Updated regex pattern to capture various firmware version formats
+            firmware_version_pattern = (
+                r'(?i)(firmware|version|ver)[^\d]*([\d]+(?:\.[\d]+)*)'
+            )
+            match = re.search(firmware_version_pattern, output)
+            
+            # Prepare the table
+            table = PrettyTable()
+            table.field_names = ["Router IP", "Port", "Firmware Version"]
+            
+            if match:
+                version_found = match.group(2)
+                table.add_row([router_ip, router_port, version_found])
+                loggers["network"].info("Router firmware version found:\n" + table.get_string())
+                return version_found  # Return the firmware version
+            else:
+                table.add_row([router_ip, router_port, "Not Found"])
+                loggers["network"].error("Firmware version not found in the router's webpage.\n" + table.get_string())
+                print(table)
+                return None
         else:
-            loggers["network"].error(
-                "Firmware version not found in the router's webpage.")
+            loggers["network"].error("No output from the router's webpage.")
             return None
 
     except subprocess.CalledProcessError as e:
         loggers["network"].error(f"Error fetching router page: {e}")
         return None
 
+
 def get_current_network_essid(interface):
     """Retrieve the ESSID of the currently connected wireless network."""
-    essid = run_command(['iwgetid', '-r', interface]).strip()
+    essid = run_network_command(['iwgetid', '-r', interface]).strip()
     if essid is None:
         loggers["network"](f"Error retrieving current ESSID for interface {interface}")
     return essid
 
+
+def get_wifi_networks(interface='wlan0'):
+    """Uses iwlist to scan for WiFi networks and returns structured information."""
+    try:
+        # Run iwlist scan commands
+        scan_result = run_network_command(['sudo', 'iwlist', interface, 'scan'])
+        loggers["network"].debug(f"iwlist scan output:\n{scan_result}")
+        return parse_iwlist_output(scan_result)
+    except subprocess.CalledProcessError as e:
+        print(f"Error: {e}")
+        return []
+
+def parse_iwlist_output(output):
+    """Parses the output of iwlist scan command."""
+    networks = []
+    network_info = {}
+    
+    # Regular expressions for extracting WiFi data
+    regex_patterns = {
+        'Cell': re.compile(r'Cell \d+ - Address: ([\dA-F:]{17})'),
+        'ESSID': re.compile(r'ESSID:"([^"]*)"'),
+        'Frequency': re.compile(r'Frequency:(\d+\.\d+)'),
+        'Signal level': re.compile(r'Signal level=(-?\d+) dBm'),
+        'Quality': re.compile(r'Quality=(\d+)/(\d+)'),
+        'Encryption key': re.compile(r'Encryption key:(on|off)'),
+        'Channel': re.compile(r'Channel:(\d+)'),
+        'Mode': re.compile(r'Mode:(\w+)'),
+        'Bit Rates': re.compile(r'Bit Rates:(.+)'),
+        'Encryption type': re.compile(r'IE: IEEE 802.11i/WPA2 Version 1|IE: WPA Version 1|IE: WPA Version 2')
+    }
+    
+    # Split output line by line
+    for line in output.splitlines():
+        line = line.strip()
+        
+        if regex_patterns['Cell'].search(line):
+            # Save the previous network info if it exists
+            if network_info:
+                networks.append(network_info)
+            # Start a new network info dictionary
+            network_info = {'Address': regex_patterns['Cell'].search(line).group(1)}
+        
+        # Match each line against known patterns
+        for key, pattern in regex_patterns.items():
+            match = pattern.search(line)
+            if match:
+                # Handle multiple matches, like quality or bit rates
+                if key == 'Quality':
+                    network_info['Quality'] = f"{match.group(1)}/{match.group(2)}"
+                elif key == 'Bit Rates':
+                    network_info[key] = match.group(1).strip().split(';')
+                elif key == 'Encryption key':
+                    network_info['Encryption Status'] = 'Enabled' if match.group(1) == 'on' else 'Disabled'
+                elif key == 'Encryption type':
+                    network_info['Encryption Type'] = "WPA2" if "WPA2" in match.group(0) else "WPA"
+                else:
+                    network_info[key] = match.group(1)
+
+    # Add the last parsed network
+    if network_info:
+        networks.append(network_info)
+
+    return networks
 
 def iwlist_security_check(interface, current_network):
     """Use iwlist to check Wi-Fi protocol and encryption key status."""
     try:
         loggers["network"].info(f"Starting Wi-Fi security check on interface '{interface}' for network '{current_network}'.")
 
-        # Run the iwlist scan and capture the output
-        result = run_command(['iwlist', interface, 'scan'])
-        
+        # Get WiFi networks using the new function
+        networks = get_wifi_networks(interface)
+
         secure_network_found = False
-        current_essid = None
+        encryption_type = "Unknown"
+        encryption_status = "Insecure"  # Initialize encryption_status as insecure
 
-        for line in result.splitlines():
-            # Check for ESSID line
-            if "ESSID" in line:
-                essid_value = line.split("ESSID:", 1)[1].strip().strip('"')
-                
-                # Skip and log empty or invalid ESSIDs
-                if not essid_value:
-                    loggers["network"].warning("Detected network with empty ESSID. Skipping.")
-                    current_essid = None  # Set to None to ensure clarity
-                    continue
-                else:
-                    current_essid = essid_value
-                    loggers["network"].info(f"Detected network: '{current_essid}'")
+        # Prepare table for displaying results
+        table = PrettyTable()
+        table.field_names = ["Network (ESSID)", "MAC Address", "Encryption", "Security Status"]
 
-            # Check for encryption key line only if ESSID is valid
-            if current_essid and "Encryption key" in line:
-                encryption_status = line.split("Encryption key:", 1)[1].strip()
-                if encryption_status == "off":
-                    loggers["network"].error(
-                        f"Network '{current_essid}' detected, but encryption is off. Connection is insecure."
-                    )
-                    return False
-                else:
-                    loggers["network"].info(
-                        f"Network '{current_essid}' has encryption enabled."
-                    )
+        # Process each network
+        for network in networks:
+            essid = network.get("ESSID", "")
+            
+            # Process only if the ESSID matches the current network
+            if essid == current_network:
+                encryption_status = network.get("Encryption Status", "Disabled")
+                encryption_type = network.get("Encryption Type", "None")
+                mac = network.get("Address")
 
-            # Check for encryption type in WPA/WPA2/WPA3 only if ESSID is valid
-            if current_essid == current_network and "IE:" in line:
-                if "WPA3" in line:
-                    encryption_type = "WPA3"
-                elif "WPA2" in line:
-                    encryption_type = "WPA2"
-                elif "WPA" in line:
-                    encryption_type = "WPA"
-                else:
-                    encryption_type = "Unknown"
-
-                # Log and mark as secure if encryption type is identified
-                if encryption_type != "Unknown":
-                    loggers["network"].info(
-                        f"Network '{current_essid}' uses {encryption_type} encryption."
-                    )
+                if encryption_status == "Enabled" and encryption_type in {"WPA", "WPA2", "WPA3"}:
                     secure_network_found = True
-                    break  # Stop once the desired network is verified
+                    security_status = "Secure"
+                    loggers["network"].info(
+                        f"Network '{essid}' is secure with {encryption_type} encryption."
+                    )
+                else:
+                    security_status = "Insecure"
+                    loggers["network"].error(
+                        f"Network '{essid}' is detected, but encryption is off or unknown. Connection is insecure."
+                    )
 
-        # Final check if network is secure
-        if secure_network_found and current_essid == current_network:
-            loggers["network"].info(
-                f"Current network '{current_network}' is secure with {encryption_type} encryption."
-            )
-            return True
+                # Add results to the table
+                table.add_row([essid, mac, encryption_type, security_status])
+                break  # Stop once the desired network is verified
 
-        # If no secure network is found in scan results
-        loggers["network"].error(
-            f"Current network '{current_network}' not found in scan results or is not secure."
-        )
+        # If no matching secure network is found, add a single "Insecure" row at the end
+        if not secure_network_found:
+            loggers["network"].error(f"Current network '{current_network}' not found in scan results OR is not secure.")
+
+        # Output to console
+        print(f"\n{'='*50}\nCurrent Wi-Fi Security Check Results\n{'='*50}")
+        print(table)  # This prints the table directly
+
+        # Output table to file
+        output_folder = "output"
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+
+        output_file = os.path.join(output_folder, "current_wifi.txt")
+        with open(output_file, "w") as file:
+            file.write(f"{'='*50}\nCurrent Wifi\n{'='*50}\n\n")
+            file.write(str(table))  # Directly write the table to file
+
+        loggers["network"].info(f"Current Wi-Fi security check results saved to '{output_file}'.")
+        return secure_network_found
+    
+    except Exception as e:
+        loggers["network"].error(f"Error during current Wi-Fi scan on interface '{interface}': {e}")
         return False
-
-    except subprocess.CalledProcessError as e:
-        loggers["network"].error(f"Error during Wi-Fi scan on interface '{interface}': {e}")
-        return False
-
 
 
 def is_valid_ip(ip):
@@ -266,7 +349,7 @@ def connect_to_device(ip_address):
             f"Attempting to connect to device at {connect_command} using ADB.\n")
 
         # subprocess.run(['adb', 'connect', connect_command], check=True)
-        result = run_command(['adb', 'connect', connect_command])
+        result = run_network_command(['adb', 'connect', connect_command])
         if result:
             loggers["network"].info(
             f"Successfully connected to device at {ip_address}.\n")
@@ -287,7 +370,7 @@ def get_default_gateway():
         # result = subprocess.run(
         #     ['ip', 'route'], capture_output=True, text=True, check=True
         # )
-        result = run_command(['ip', 'route'])
+        result = run_network_command(['ip', 'route'])
         for line in result.splitlines():
             if 'default' in line:
                 # The third field is the default gateway IP
@@ -338,7 +421,7 @@ def get_physical_device_name():
         # output = subprocess.check_output(
         #     ["adb", "shell", "getprop", "ro.product.model"], text=True
         # )
-        output = run_command(["adb", "shell", "getprop", "ro.product.model"])
+        output = run_network_command(["adb", "shell", "getprop", "ro.product.model"])
         if output.strip():
             loggers["acquisition"].info(f"Successfully retrieved device name: {output.strip()}")
         return output.strip()
@@ -408,7 +491,7 @@ def get_network_ip_cidr(interface):
         #     text=True,
         #     check=True
         # )
-        result = run_command(['ip', 'addr', 'show', interface])
+        result = run_network_command(['ip', 'addr', 'show', interface])
         # Extract IP address and subnet mask in CIDR format (e.g., '192.168.1.5/24')
         match = re.search(r'inet (\d+\.\d+\.\d+\.\d+/\d+)', result)
 
@@ -430,75 +513,64 @@ def get_network_ip_cidr(interface):
             f"Error retrieving network IP and subnet for {interface}: {e}")
         return "192.168.0.0/24"  # Default fallback subnet
 
-
-def detect_devices(ip_range, smartwatch_ip):
-    """Detect devices on the network using python-netdiscover."""
-    # Initialize a dictionary to store devices by IP address
-    previous_device_ips = {}  # Dictionary to store IPs and their connection status
-    # Initialize previous enforcement setting
+def detect_devices(ip_range, smartwatch_ip, network_interface):
+    """
+    Continuously monitor the network for unauthorized devices and enforce network rules.
+    """
+    # Retrieve IP range for the network interface
+    # ip_range = get_network_ip_cidr(network_interface)
+    # loggers["network"].info(f"Starting device detection on IP range: {ip_range}")
+    
+    # Load initial enforcement setting
     previous_enforcement_setting = load_network_enforcement_setting()
+    detected_device_ips = set()  # Set to store detected device IPs
 
     while True:
         try:
-            # Load the most up-to-date enforcement setting
+            # Load the latest enforcement setting
             current_enforcement_setting = load_network_enforcement_setting()
 
-            # Check if enforcement setting has changed
+            # Log if the enforcement setting has changed
             if current_enforcement_setting != previous_enforcement_setting:
-                loggers["network"].info(
-                    f"Network enforcement setting changed to: {current_enforcement_setting}")
-                previous_enforcement_setting = current_enforcement_setting  # Update to new setting
+                loggers["network"].info(f"Network enforcement setting changed to: {current_enforcement_setting}")
+                previous_enforcement_setting = current_enforcement_setting
 
-            # Initialize the network scanner
-            disc = Discover()
-
-            # Perform the network scan
-            devices = disc.scan(ip_range=ip_range)
-
-            # Extract IP addresses of detected devices
-            ip_addresses = [device['ip'] for device in devices]
+            # Perform a network scan
+            devices = run_netdiscover(network_interface, ip_range, 30)
+            ip_addresses = {device[0] for device in devices}
             current_device_count = len(ip_addresses)
 
-            # Allowed IPs: smartwatch and default gateway
+            # Define allowed IPs
             def_gateway = get_default_gateway()
             allowed_ips = {smartwatch_ip, def_gateway}
+            unauthorized_devices = [ip for ip in ip_addresses if ip not in allowed_ips]
 
-            # Check for any other devices on the network
-            for ip in ip_addresses:
-                if ip not in allowed_ips:
-                    if ip not in previous_device_ips:
-                        # If enforcement is disabled, log new devices and add them to dictionary
-                        if current_enforcement_setting == "disable":
-                            loggers["network"].info(
-                                f"New device connected with IP: {ip}. Network enforcement is disabled.")
-                            # Mark device as detected
-                            previous_device_ips[ip] = True
-                    elif current_enforcement_setting == "enable":
-                        # If enforcement is enabled and the device is not allowed, abort the script
-                        loggers["network"].error(
-                            f"Unauthorized device detected: {ip}. Aborting script...")
-                        exit_program()
-                        os._exit(0)  # Kill the script
+            # Log any unauthorized devices detected
+            if unauthorized_devices:
+                loggers["network"].info(f"Unauthorized devices detected: {unauthorized_devices}")
+                if current_enforcement_setting == "enable":
+                    loggers["network"].error("Enforcement enabled: Unauthorized devices detected. Aborting...")
+                    exit_program()
+                    os._exit(0)  # Terminate the script immediately
 
-            # Log changes in device count if the device list has changed
-            if set(ip_addresses) != set(previous_device_ips.keys()):
-                loggers["network"].info(
-                    f"Devices detected: {current_device_count}")
-                # Update to current list of IPs
-                previous_device_ips = {ip: True for ip in ip_addresses}
+            # Log any change in the number of detected devices
+            if detected_device_ips != ip_addresses:
+                loggers["network"].info(f"Device count changed: {current_device_count} devices detected.")
+                detected_device_ips = ip_addresses
 
-            # If enforcement is enabled, check the device count limit
+            # Check device count limit if enforcement is enabled
             if current_enforcement_setting == "enable" and current_device_count > 2:
-                loggers["network"].error(
-                    "More than 2 devices detected. Network enforcement enabled. Aborting script..."
-                )
+                loggers["network"].error("More than 2 devices detected. Enforcement enabled; aborting...")
                 exit_program()
-                os._exit(0)  # Kill the script
+                os._exit(0)  # Terminate the script
+
+            # Brief pause between scans
+            # time.sleep(30)
 
         except Exception as e:
-            loggers["network"].error(
-                f"Unexpected error in device detection: {e}")
+            loggers["network"].error(f"Unexpected error in device detection: {e}")
             exit_program()
+
 
 
 #one time only when running
@@ -602,25 +674,21 @@ def update_user_settings(enforcement_setting):
         loggers["network"].error(f"Error updating user settings: {e}")
 
 def scan_network(network_interface, smartwatch_ip):
-    """Scan the network for connected devices and enforce network rules."""
+    """
+    Scan the network for connected devices and enforce network rules 
+    when connecting for the first time
+    """
+    
     # Set initial network enforcement setting to 'disable' for first-time users
     current_enforcement_setting = "disable"
 
     try:
-        # Initialize the network scanner
-        # disc = Discover()
-
         # Retrieve the IP range for the specified network interface
         ip_range = get_network_ip_cidr(network_interface)
         loggers["network"].info(f"Scanning IP range: {ip_range}")
 
-        # Perform the network scan
-        # devices = disc.scan(ip_range=ip_range)
+        # Perform the network scan and retrieve details of each device
         devices = run_netdiscover(network_interface, ip_range, 30)
-
-        # Extract IP addresses of detected devices
-        ip_addresses = [device[0] for device in devices]
-        current_device_count = len(ip_addresses)
 
         # Allowed IPs: smartwatch, and default gateway
         def_gateway = get_default_gateway()
@@ -629,20 +697,22 @@ def scan_network(network_interface, smartwatch_ip):
         # Variable to track if unauthorized devices are found
         unauthorized_devices = []
 
-        # Check for any other devices on the network
-        for ip in ip_addresses:
+        # Check each detected device for authorization
+        for device in devices:
+            ip, mac, vendor = device[0], device[1], device[2]
             if ip not in allowed_ips:
                 # Track unauthorized devices
-                unauthorized_devices.append(ip)
+                unauthorized_devices.append((ip, mac, vendor))
+                loggers["network"].info(f"Detected Device - IP: {ip}, MAC: {mac}, Vendor: {vendor}")
 
-        # Log changes in device count if the device list has changed
-        if len(ip_addresses) != current_device_count:
-            loggers["network"].info(
-                f"Devices detected: {current_device_count}")
+        # Log the total number of detected devices
+        current_device_count = len(devices)
+        loggers["network"].info(f"Number of devices detected: {current_device_count}")
 
-        # If there are unauthorized devices and enforcement is enabled, ask user for input
+        # If unauthorized devices are found, prompt user if enforcement is enabled
         if unauthorized_devices:
-            loggers["network"].info(f"Unauthorized devices detected: {unauthorized_devices}")
+            unauthorized_ips = [ip for ip, _, _ in unauthorized_devices]
+            loggers["network"].info(f"Unauthorized devices detected: {unauthorized_ips}")
             user_input = input("Extra devices detected. Leave empty to continue, or type 'no' to abort: ").strip().lower()
             if user_input == "no":
                 loggers["network"].info("User aborted due to unauthorized devices.")
@@ -661,9 +731,7 @@ def scan_network(network_interface, smartwatch_ip):
             exit_program()
             os._exit(0)  # Kill the script
         elif current_device_count <= 2:
-            loggers["network"].info(
-                "No additional devices detected. Continuing..."
-            )
+            loggers["network"].info("No additional devices detected. Continuing...")
 
         # If no unauthorized devices and the enforcement is not triggered, ask user to enable/disable enforcement
         if not unauthorized_devices:
@@ -680,8 +748,7 @@ def scan_network(network_interface, smartwatch_ip):
 
         # Log the enforcement setting status
         if current_enforcement_setting == "disable":
-            loggers["network"].info(
-                "Network enforcement is disabled. Continuing to log devices.")
+            loggers["network"].info("Network enforcement is disabled. Continuing to log devices.")
 
     except Exception as e:
         loggers["network"].error(f"Unexpected error in network scanning: {e}")

@@ -135,7 +135,7 @@ def main():
         emulated = False
         network_interface = option.interface
         loggers["app"].info("Selected: Physical watch")
-        loggers["app"].info(f"Network Interface: {network_interface}\n")
+        loggers["app"].info(f"Network Interface Specified: {network_interface}")
         success, watch_ip = initiate.initialise(network_interface)
         if not success:
             loggers["app"].error("Connection aborted. Exiting...")
@@ -143,7 +143,7 @@ def main():
         
         current_network_cidr = network_management.get_network_ip_cidr(network_interface)
         #device_detection_thread = threading.Thread(target=connect.detect_devices)
-        device_detection_thread = threading.Thread(target=network_management.detect_devices, args=(current_network_cidr, watch_ip))
+        device_detection_thread = threading.Thread(target=network_management.detect_devices, args=(current_network_cidr, watch_ip, network_interface))
         device_detection_thread.daemon = True
         device_detection_thread.start()
         

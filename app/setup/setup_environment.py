@@ -24,7 +24,7 @@ def run_command(command):
             loggers["env_setup"].error(f"Error while running command: {' '.join(command)}")
             return False  # Explicitly return False if we detect an error in the output
 
-        loggers["acquisition"].info(f"Command succeeded: {' '.join(command)}")
+        loggers["env_setup"].info(f"Command succeeded: {' '.join(command)}")
         # loggers["env_setup"].info(result.stdout)
         return result.stdout  # Return True if the command completed successfully
 
