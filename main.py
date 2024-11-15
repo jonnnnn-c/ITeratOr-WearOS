@@ -7,6 +7,8 @@ from app.logs.logger_config import (
 )
 from app.preacquisition import initiate, network_management
 from app.setup.choices import *
+import re
+import ipaddress
 
 # Global variables
 emulated = None
@@ -141,9 +143,34 @@ def main():
             loggers["app"].error("Connection aborted. Exiting...")
             return
         
-        current_network_cidr = network_management.get_network_ip_cidr(network_interface)
+        try:
+            # Run the 'ip' command to get interface details
+            result = subprocess.run(
+                ['ip', 'addr', 'show', network_interface],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            # result = run_network_command(['ip', 'addr', 'show', interface])
+            # Extract IP address and subnet mask in CIDR format (e.g., '192.168.1.5/24')
+            match = re.search(r'inet (\d+\.\d+\.\d+\.\d+/\d+)', result.stdout.strip())
+
+            if match:
+                # Get the IP address in CIDR format
+                ip_cidr = match.group(1)
+
+                # Convert to network address (network IP)
+                network = ipaddress.ip_network(ip_cidr, strict=False)
+                network_ip_cidr = str(network)
+                
+        except subprocess.CalledProcessError as e:
+            loggers["network"].error(
+                f"Error retrieving network IP and subnet for {network_interface}: {e}")
+            return "192.168.0.0/24"  # Default fallback subnet
+
+        # current_network_cidr = network_management.get_network_ip_cidr(network_interface)
         #device_detection_thread = threading.Thread(target=connect.detect_devices)
-        device_detection_thread = threading.Thread(target=network_management.detect_devices, args=(current_network_cidr, watch_ip, network_interface))
+        device_detection_thread = threading.Thread(target=network_management.detect_devices, args=(network_ip_cidr, watch_ip, network_interface))
         device_detection_thread.daemon = True
         device_detection_thread.start()
         
@@ -167,11 +194,11 @@ def main():
 
     try:
         if enable_adb_root():
-            loggers["app"].info("Device rooted: True")
+            loggers["app"].info("Device rooted: True\n")
         else:
             loggers["app"].warning("Device rooted: False")
-            loggers["app"].warning("Device is not rooted; some commands may not work properly.")
-        loggers["app"].warning("To safely disconnect, select option 5 from the menu or press Ctrl+C to exit the script.")
+            loggers["app"].warning("Device is not rooted; some commands may not work properly.\n")
+        loggers["app"].info("To safely disconnect, select option 0 from the menu or press Ctrl+C to exit the script.\n")
 
         if emulated:
             display_menu(device_name)

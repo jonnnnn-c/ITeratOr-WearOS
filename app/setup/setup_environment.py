@@ -75,6 +75,10 @@ def setup_required_tools():
 def enable_adb_root():
     """Function to run 'adb root' to gain root access."""
 
+    print("\n" + "=" * 50)
+    print("Attempting to root device")
+    print("=" * 50)
+            
     loggers["env_setup"].info("Running 'adb root' to gain root access.")
     success = run_command(["adb", "root"])
 

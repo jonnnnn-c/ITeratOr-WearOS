@@ -13,6 +13,7 @@ ROOT_DIR = os.path.abspath(os.path.join(SETUP_DIR, "../.."))
 OUTPUT_DIR = os.path.join(ROOT_DIR, "output/")
 
 # Acquisition output
+NETWORK_DIR = os.path.join(OUTPUT_DIR, "preacquisition/")
 DEVICE_INFORMATION_DIR = os.path.join(OUTPUT_DIR, "device_information/")
 ISOLATE_DEVICE_DIR = os.path.join(OUTPUT_DIR, "isolation_status/")
 ANALYZE_PROCESSES_DIR = os.path.join(OUTPUT_DIR, "analyze_processes/")

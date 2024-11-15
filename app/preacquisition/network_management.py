@@ -14,66 +14,138 @@ from app.preacquisition.run_netdiscover import *
 from app.setup.setup_environment import *
 from app.setup.choices import *
 
+from app.setup import (
+    settings
+)
+
 # Initialize all loggers
 loggers = initialize_loggers()
+
+def validate_input():
+    """Ask the user whether to continue or abort the script after vulnerability detection."""
+    while True:
+        user_input = input("\nRouter is vulnerable. Do you want to continue? (Press Enter to continue, type 'no' to abort):\n> ").strip().lower()
+        if user_input == '' or user_input == 'no':
+            return user_input
+        else:
+            loggers["network"].warning("Invalid input. Please type 'no' to abort or press Enter to continue.")
 
 
 def run_network_command(command):
     """Function to run system commands with error handling"""
-
     try:
-        result = subprocess.run(command, check=True,
-                                text=True, capture_output=True)
-
+        result = subprocess.run(command, check=True, text=True, capture_output=True)
         loggers["network"].info(f"Command succeeded: {' '.join(command)}")
-        return result.stdout  # Return True if the command completed successfully
+        return result.stdout  # Return the output if the command completed successfully
 
     except subprocess.CalledProcessError as e:
-        loggers["network"].error(
-            f"Error while running command: {' '.join(command)}, error: {e.stderr}")
-        # loggers["network"].error(e.stderr)  # This will work as 'e' is defined in the 'except' block
+        loggers["network"].error(f"Error while running command: {' '.join(command)}, error: {e.stderr}")
         return False  # Return False if an exception was raised
 
 
-def check_firmware_version(router_ip, router_port):
-    """Check for router firmware version using wget."""
+def realtime_run_network_command(command):
+    """Function to run system commands with real-time output and error handling"""
     try:
-        # Construct the URL with the provided IP and port
-        url = f'http://{router_ip}:{router_port}'
-        result = run_network_command(['wget', '-qO-', url])
+        # Use subprocess.Popen to allow real-time output
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
-        # Check for common indicators of firmware version in the output
-        output = result
-        if output:
-            # Updated regex pattern to capture various firmware version formats
-            firmware_version_pattern = (
-                r'(?i)(firmware|version|ver)[^\d]*([\d]+(?:\.[\d]+)*)'
-            )
-            match = re.search(firmware_version_pattern, output)
+        # Create a variable to store the real-time output
+        real_time_output = ""
 
-            # Prepare the table
-            table = PrettyTable()
-            table.field_names = ["Router IP", "Port", "Firmware Version"]
+        # Print the output in real-time and capture it
+        for line in process.stdout:
+            print(line, end='')  # Print each line of output as it is generated
+            real_time_output += line  # Capture the output for later use
 
-            if match:
-                version_found = match.group(2)
-                table.add_row([router_ip, router_port, version_found])
-                loggers["network"].info(
-                    "Router firmware version found:\n" + table.get_string())
-                return version_found  # Return the firmware version
-            else:
-                table.add_row([router_ip, router_port, "Not Found"])
-                loggers["network"].error(
-                    "Firmware version not found in the router's webpage.\n" + table.get_string())
-                print(table)
-                return None
+        # Capture stderr if there's an error
+        stderr = process.stderr.read()
+        if stderr:
+            print(stderr, end='')
+            real_time_output += stderr  # Capture error output
+
+        # Wait for the process to finish
+        process.wait()
+
+        if process.returncode == 0:
+            loggers["network"].info(f"Command succeeded: {' '.join(command)}")
+            return real_time_output  # Return the captured output as a string
         else:
-            loggers["network"].error("No output from the router's webpage.")
-            return None
+            loggers["network"].error(f"Command failed: {' '.join(command)}")
+            return False
 
-    except subprocess.CalledProcessError as e:
-        loggers["network"].error(f"Error fetching router page: {e}")
-        return None
+    except Exception as e:
+        loggers["network"].error(f"Error while running command: {' '.join(command)}, error: {e}")
+        return False
+
+
+def nmap_scan_for_vulnerabilities(ip_address):
+    """Scan the IP address for vulnerabilities using nmap and save output to a file."""
+    try:
+        # Ensure the output directory exists
+        output_dir = "output/network"
+        os.makedirs(output_dir, exist_ok=True)
+        output_file_path = os.path.join(output_dir, "router_vulnerabilities.txt")
+        
+        # Run nmap with common vulnerability scripts
+        command = [
+            "nmap", "-A", "-sV", "--script", "vuln,discovery,firewall-bypass,default", "-p-", "--reason", "--osscan-guess", "--traceroute", ip_address
+        ]
+        
+        # Attempt to run the command and allow keyboard interruption
+        try:
+            result = realtime_run_network_command(command)
+        except KeyboardInterrupt:
+            loggers["network"].warning("Nmap scan interrupted by user.\n")
+            return False
+        
+        # If the process completed successfully
+        if result:
+            # Write the result to the output file
+            with open(output_file_path, "w") as file:
+                file.write(result)
+            
+            # Check if vulnerabilities were found and if "CVE" is in the result
+            if "VULNERABLE" in result or "CVE" in result:
+                
+                # Print table after the command succeeded log
+                table = PrettyTable()
+                table.field_names = ["Router IP", "Vulnerabilities Found"]
+                table.add_row([ip_address, "Yes"])
+                loggers["network"].info(f"Router Information:\n\n{table}\n")
+                
+                loggers["network"].warning("[VULNERABLE ROUTER] Vulnerabilities detected in nmap scan. Output at output/network/router_vulnerabilities.txt")
+
+                # Validate user input before continuing
+                user_choice = validate_input()
+                if user_choice == 'no':
+                    loggers["network"].info(f"\nUser aborted due to router vulnerabilities.")
+                    exit_program()
+                    os._exit(0)
+                return True
+            else:
+                # Print table after the command succeeded log
+                table = PrettyTable()
+                table.field_names = ["Router IP", "Vulnerabilities Found"]
+                table.add_row([ip_address, "No"])
+                loggers["network"].info(f"Router Information:\n\n{table}\n")
+
+                loggers["network"].info("\nNo vulnerabilities detected in nmap scan.")
+                return False
+        else:
+            loggers["network"].error("Nmap scan failed or returned no output.")
+            return False
+    except Exception as e:
+        loggers["network"].error(f"Error during nmap scan: {e}")
+        return False
+
+
+def check_router_vulnerabilities(router_ip):
+    """Check the router for vulnerabilities using nmap."""
+    # Run an nmap vulnerability scan on the router
+    if nmap_scan_for_vulnerabilities(router_ip):
+        loggers["network"].warning("Vulnerabilities detected in the router.")
+    else:
+        loggers["network"].info("No vulnerabilities detected in the router.")
 
 
 def get_current_network_essid(interface):
@@ -94,7 +166,7 @@ def get_wifi_networks(interface='wlan0'):
         # loggers["network"].debug(f"iwlist scan output:\n{scan_result}")
         return parse_iwlist_output(scan_result)
     except subprocess.CalledProcessError as e:
-        print(f"Error: {e}")
+        loggers["network"].warning(f"Error: {e}")
         return []
 
 
@@ -181,7 +253,6 @@ def iwlist_security_check(interface, current_network):
                 encryption_status = network.get(
                     "Encryption Status", "Disabled")
                 encryption_type = network.get("Encryption Type", "None")
-                mac = network.get("Address")
 
                 if encryption_status == "Enabled" and encryption_type in {"WPA", "WPA2", "WPA3"}:
                     secure_network_found = True
@@ -195,6 +266,11 @@ def iwlist_security_check(interface, current_network):
                         f"Network '{essid}' is detected, but encryption is off or unknown. Connection is insecure."
                     )
 
+                mac = network.get("Address")
+                if not mac:
+                    loggers["network"].error(f"MAC Address not found.")
+                    return False
+                
                 # Add results to the table
                 table.add_row([essid, mac, encryption_type, security_status])
                 break  # Stop once the desired network is verified
@@ -206,14 +282,16 @@ def iwlist_security_check(interface, current_network):
 
         # Output to console
         print(f"\n{'='*50}\nCurrent Wi-Fi Security Check Results\n{'='*50}")
-        print(table)  # This prints the table directly
+        loggers["network"].info("Current Wi-Fi Security Check Results")
+        loggers["network"].info(f"Current Wi-Fi Information:\n\n{table}\n")  # This prints the table directly
 
         # Output table to file
-        output_folder = "output"
-        if not os.path.exists(output_folder):
-            os.makedirs(output_folder)
+        upload_dir = settings.NETWORK_DIR
+        if not os.path.exists(upload_dir):
+            os.makedirs(upload_dir)
+            loggers["network"].debug(f"Created directory: {upload_dir}")
 
-        output_file = os.path.join(output_folder, "current_wifi.txt")
+        output_file = os.path.join(upload_dir, "current_wifi.txt")
         with open(output_file, "w") as file:
             file.write(f"{'='*50}\nCurrent Wifi\n{'='*50}\n\n")
             file.write(str(table))  # Directly write the table to file
@@ -248,16 +326,11 @@ def pair_device():
         "Starting the pairing process with WearOS smartwatch.")
 
     # Provide guidance on obtaining the IP address
-    print("\n" + "="*80)
-    print("How to find the necessary information to pair with WearOS smartwatch")
-    print("="*80)
+    print("\nHow to find the necessary information to pair with WearOS smartwatch")
     print("1. On your WearOS smartwatch, go to Settings > Developer Options > Wireless Debugging.")
     print("2. Connect to a Wi-Fi network if not already connected.")
     print("3. Click 'Pair new device'.")
-    print("4. Enter the IP address and port number when prompted.\n")
-
-    loggers["network"].info(
-        "Providing instructions to user on obtaining IP address.")
+    print("4. Enter the IP address and port number when prompted.")
 
     # Prompt for IP address with validation
     while True:
@@ -272,7 +345,6 @@ def pair_device():
         else:
             loggers["network"].error(
                 "Invalid IP address entered. Please enter a valid IPv4 address.")
-            print("Invalid IP address entered. Please enter a valid IPv4 address.")
 
     # Prompt for port number with validation
     while True:
@@ -289,23 +361,18 @@ def pair_device():
             else:
                 loggers["network"].error(
                     "Invalid port number entered. Please enter a number between 1 and 65535.")
-                print(
-                    "Invalid port number entered. Please enter a number between 1 and 65535.")
         else:
             loggers["network"].error(
                 "Invalid input for port. Please enter a valid integer.")
-            print("Invalid input for port. Please enter a valid integer.")
 
     # Attempting pairing using adb
     pair_command = f"{ip_address}:{port}"
-    loggers["network"].info(
-        f"Attempting to pair with device at {pair_command} using ADB.")
-    print()
+    loggers["network"].info(f"Attempting to pair with device at {pair_command} using ADB.\n")
 
     try:
         subprocess.run(['adb', 'pair', pair_command], check=True)
-        loggers["network"].info(
-            f"Successfully paired with device at {ip_address}.")
+        print()
+        loggers["network"].info(f"Successfully paired with device at {ip_address}.")
         return True, ip_address
     except subprocess.CalledProcessError as e:
         loggers["network"].error(
@@ -324,59 +391,53 @@ def connect_to_device(ip_address):
         "Initiating connection process with WearOS smartwatch.")
 
     # Provide guidance on obtaining the IP address
-    print("\n" + "="*80)
-    print("How to find the necessary information to connect with WearOS smartwatch")
-    print("="*80)
+    print("\nHow to find the necessary information to connect with WearOS smartwatch")
     print("1. On your WearOS smartwatch, go to Settings > Developer Options > Wireless Debugging.")
     print("2. Enter the IP address and port number when prompted.")
 
-    # Prompt for port number with default option
     while True:
+        # Prompt for port number with default option
         port_input = input(
-            "Enter the port number to connect with the smartwatch:\n"
+            "\nEnter the port number to connect with the smartwatch:\n"
             "(Example: [1-65535])\n> "
         ).strip()
 
         # Use default port 5555 if input is empty
         if port_input == "":
             port = 5555
-            loggers["network"].info(
-                "No port entered. Using default port 5555.")
-            break
+            loggers["network"].info("No port entered. Using default port 5555.")
         # Validate and set the port if a valid integer is entered
         elif port_input.isdigit():
             port = int(port_input)
             if is_valid_port(port):
                 loggers["network"].info(f"Valid port number entered: {port}")
-                break
             else:
-                loggers["network"].error(
-                    "Invalid port number. Please enter a value between 1 and 65535.")
-                print("Invalid port number. Please enter a value between 1 and 65535.")
+                loggers["network"].error("Invalid port number. Please enter a value between 1 and 65535.")
+                continue
         else:
-            loggers["network"].error(
-                "Invalid input for port. Please enter a valid integer.")
-            print("Invalid input for port. Please enter a valid integer.")
+            loggers["network"].error("Invalid input for port. Please enter a valid integer.")
+            continue
 
-    try:
-        connect_command = f"{ip_address}:{port}"
-        loggers["network"].info(
-            f"Attempting to connect to device at {connect_command} using ADB.\n")
+        try:
+            connect_command = f"{ip_address}:{port}"
+            loggers["network"].info(f"Attempting to connect to device at {connect_command} using ADB.")
+            result = run_network_command(['adb', 'connect', connect_command])
 
-        # subprocess.run(['adb', 'connect', connect_command], check=True)
-        result = run_network_command(['adb', 'connect', connect_command])
-        if result:
-            loggers["network"].info(
-                f"Successfully connected to device at {ip_address}.\n")
-            return True  # Return success
-        else:
-            loggers["network"].error(
-                f"Error connecting to device at {ip_address}")
-            return False  # Return failure
-    except subprocess.CalledProcessError as e:
-        loggers["network"].error(
-            f"Error connecting to device at {ip_address}: {e}")
-        return False  # Return failure
+            # Check if any ADB devices are connected
+            connected_devices = check_adb_devices()
+            if connected_devices:
+                # Run the adb connect command
+                return True
+                # if result:
+                    # loggers["network"].info(f"Successfully connected to device at {ip_address}.")
+            else:
+                loggers["network"].error(f"Error connecting to device at {ip_address}")
+
+        except subprocess.CalledProcessError as e:
+            loggers["network"].error(f"Error connecting to device at {ip_address}: {e}")
+
+        # Re-prompt for port if connection or device detection failed
+        print("\nReattempting connection setup...")
 
 
 def get_default_gateway():
@@ -407,8 +468,7 @@ def verify_network_devices(current_device_ip, watch_ip, network_interface):
     loggers["network"].info("Starting network verification process.")
 
     # Step 1: Loading indication
-    print("\nLoading network scan process...")
-    print("Please wait while we perform the network scan.\n")
+    loggers["network"].info("Please wait while we perform the network scan...\n")
     # time.sleep(10)  # Simulate waiting for scan
 
     # Step 2: Scan for the smartwatch on the network
@@ -421,9 +481,8 @@ def verify_network_devices(current_device_ip, watch_ip, network_interface):
         return False  # Return False if default gateway isn't found
 
     # Step 4: Final message
-    print("")
-    loggers["network"].info(
-        "Network devices verification completed successfully.")
+    print()
+    loggers["network"].info("Network devices verification completed successfully.")
     return True
 
 
@@ -437,13 +496,13 @@ def get_physical_device_name():
         output = run_network_command(
             ["adb", "shell", "getprop", "ro.product.model"])
         if output:
-            loggers["acquisition"].info(
+            loggers["network"].info(
                 f"Successfully retrieved device name: {output.strip()}")
             return output.strip()
         else:
             return False
     except subprocess.CalledProcessError as e:
-        loggers["acquisition"].error(f"Failed to get device name: {e}")
+        loggers["network"].error(f"Failed to get device name: {e}")
         return False
 
 
@@ -451,9 +510,9 @@ def disconnect_all_devices():
     """Disconnect all ADB devices."""
     try:
         subprocess.run(['adb', 'disconnect'], check=True)
-        loggers["network"].info("All ADB devices have been disconnected.\n")
+        loggers["network"].info("All ADB devices have been disconnected.")
     except subprocess.CalledProcessError as e:
-        loggers["network"].error(f"Error disconnecting ADB devices: {e}\n")
+        loggers["network"].error(f"Error disconnecting ADB devices: {e}")
 
 
 def is_valid_port(port):
@@ -573,13 +632,13 @@ def detect_devices(ip_range, smartwatch_ip, network_interface):
             # Log any unauthorized devices detected
             if unauthorized_devices and current_enforcement_setting == "enable":
                 for device in unauthorized_devices:
-                    loggers["network"].info(
-                        f"Unauthorized Device Detected - IP: {device[0]}, MAC: {device[1]}, Vendor: {device[2]}")
+                    loggers["network"].error(
+                        f"[UNKNOWN] Unauthorized Device Detected - IP: {device[0]}, MAC: {device[1]}, Vendor: {device[2]}")
                 exit_program()
                 os._exit(0)  # Terminate the script immediately
                 
             # Log any change in the number of detected devices
-            # if detected_device_ips != ip_addresses:
+            # if detectted_device_ips != ip_addresses:
             #     loggers["network"].info(
             #         f"Device count changed: {current_device_count} devices detected.")
             #     detected_device_ips = ip_addresses
@@ -612,6 +671,7 @@ def update_user_settings(enforcement_setting):
         with open(USER_SETTING, 'w') as f:
             json.dump(user_settings, f, indent=4)
 
+        print()
         loggers["network"].info(
             f"User settings updated: network_enforcement = {enforcement_setting}")
 
@@ -633,49 +693,61 @@ def scan_network(network_interface, smartwatch_ip):
         ip_range = get_network_ip_cidr(network_interface)
         loggers["network"].info(f"Scanning IP range: {ip_range}")
 
+        print()
+
         # Perform the network scan and retrieve details of each device
         devices = run_netdiscover(network_interface, ip_range, timeout)
-        loggers["network"].info(f"Running netdiscover on interface '{network_interface}' for network '{ip_range}' with timeout {timeout} seconds.")
+        loggers["network"].info(f"Running netdiscover on interface '{network_interface}' for network '{ip_range}'")
 
-        # Allowed IPs: smartwatch, and default gateway
+        # Allowed IPs with labels: smartwatch and default gateway
         def_gateway = get_default_gateway()
-        allowed_ips = {smartwatch_ip, def_gateway}
-
+        allowed_ips = {smartwatch_ip: "[smartwatch]", def_gateway: "[default gateway]"}
+        
         # Variable to track if unauthorized devices are found
         unauthorized_devices = []
 
+        # Initialize PrettyTable
+        table = PrettyTable()
+        table.field_names = ["IP Address", "Label", "MAC Address", "Vendor"]
+
+        # Log the total number of detected devices
+        current_device_count = len(devices)
+        
         # Check each detected device for authorization
         for device in devices:
             ip, mac, vendor = device[0], device[1], device[2].strip()  # Remove any leading/trailing whitespace
             # Extract only the vendor name after any unnecessary numbers or whitespace
             vendor_name = ' '.join(vendor.split()[2:])  # Assuming vendor name starts after first two entries
+            
+            # Check if IP is in allowed IPs, and if so, add the label
+            label = allowed_ips.get(ip, "[Unknown]")  # Defaults to "[Unknown]" if not in allowed_ips
+            table.add_row([ip, label, mac, vendor_name])  # Add the device details to the table
+
+            if ip in allowed_ips:
+                loggers["network"].info(f"Detected Device - IP: {ip} {label}, MAC: {mac}, Vendor: {vendor_name}")
 
             if ip not in allowed_ips:
                 # Track unauthorized devices
                 unauthorized_devices.append((ip, mac, vendor_name))
                 loggers["network"].info(
-                    f"Detected Device - IP: {ip}, MAC: {mac}, Vendor: {vendor_name}")
+                    f"Detected Device - IP: {ip} [Unknown], MAC: {mac}, Vendor: {vendor_name}")
 
-
-        # Log the total number of detected devices
-        current_device_count = len(devices)
-        loggers["network"].info(
-            f"Number of devices detected: {current_device_count}")
+        # Display the table of detected devices
+        loggers["network"].info(f"Detected Devices:\n\n{table}\n")
 
         # If unauthorized devices are found, prompt user if enforcement is enabled
         if unauthorized_devices:
             unauthorized_ips = [ip for ip, _, _ in unauthorized_devices]
-            loggers["network"].info(
-                f"Unauthorized devices detected: {unauthorized_ips}")
+            loggers["network"].warning(f"[UNKNOWN] Unauthorized devices detected: {unauthorized_ips}")
             
             user_input = get_valid_input(
-                "Extra devices detected. Leave empty to continue, or type 'no' to abort: ",
+                "Extra devices detected. Leave empty to DISABLE, or type 'no' to abort:\n> ",
                 valid_choices=["", "no"],
                 allow_empty=True
             )
             if user_input == "no":
                 loggers["network"].info(
-                    "User aborted due to unauthorized devices.")
+                    "\nUser aborted due to unauthorized devices.")
                 exit_program()
                 os._exit(0)  # Kill the script
             else:
@@ -698,7 +770,7 @@ def scan_network(network_interface, smartwatch_ip):
         # If no unauthorized devices and the enforcement is not triggered, ask user to enable/disable enforcement
         if not unauthorized_devices:
             user_input = get_valid_input(
-                f"Network enforcement is currently '{current_enforcement_setting}'. Do you want to enable or disable it? (leave empty to continue): ",
+                f"Network enforcement is currently '{current_enforcement_setting}'. Do you want to enable or disable it? (leave empty to disable):\n> ",
                 valid_choices=["", "enable", "disable"],
                 allow_empty=True
             )
@@ -715,7 +787,7 @@ def scan_network(network_interface, smartwatch_ip):
         # Log the enforcement setting status
         if current_enforcement_setting == "disable":
             loggers["network"].info(
-                "Network enforcement is disabled. Continuing to log devices.")
+                "Network enforcement is disabled.")
 
     except Exception as e:
         loggers["network"].error(f"Unexpected error in network scanning: {e}")
@@ -730,4 +802,4 @@ def get_valid_input(prompt, valid_choices, allow_empty=True):
         elif user_input in valid_choices:
             return user_input
         else:
-            print(f"Invalid input. Please choose from {valid_choices}.")
+            loggers["network"].warning(f"Invalid input. Please choose from {valid_choices}.")
