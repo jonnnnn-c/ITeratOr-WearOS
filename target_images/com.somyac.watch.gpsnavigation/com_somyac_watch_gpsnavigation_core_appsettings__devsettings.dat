@@ -1,0 +1,9 @@
+#Sun Nov 17 09:44:50 GMT 2024
+devFilterLoc=true
+useLocationTest=false
+devSmartSnap=true
+devShowRoutePoints=false
+devPreviewPointsForBearing=true
+usePeriodicTest=false
+devCleanupPoints=true
+showCompass=true

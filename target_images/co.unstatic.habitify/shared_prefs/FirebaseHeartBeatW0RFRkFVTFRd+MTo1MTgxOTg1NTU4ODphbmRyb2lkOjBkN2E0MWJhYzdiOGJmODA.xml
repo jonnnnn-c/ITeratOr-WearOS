@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<map>
+    <long name="fire-count" value="1" />
+    <string name="last-used-date">2024-10-28</string>
+    <long name="fire-global" value="1730125593418" />
+    <set name="fire-cfg-ktx/21.6.3 fire-db-ktx/20.3.1 fire-analytics/21.6.1 fire-core-ktx/20.4.3 fire-abt/21.1.1 fire-auth-ktx/22.3.1 fire-analytics-ktx/21.6.1 fire-core/20.4.3 fire-android/30 fire-app-check-play-integrity/17.1.2 device-model/generic_x86_arm fire-gcs/20.3.0 kotlin/1.9.22 android-target-sdk/33 android-min-sdk/26 android-platform/watch fire-dl-ktx/21.2.0 android-installer/com.android.vending device-brand/google fire-installations/17.2.0 fire-auth/22.3.1 device-name/sdk_gwear_x86 fire-app-check-debug/17.1.2 fire-rtdb/20.3.1 fire-stg-ktx/20.3.0 fire-dl/21.2.0 fire-rc/21.6.3 fire-app-check/17.1.2">
+        <string>2024-10-28</string>
+    </set>
+</map>
