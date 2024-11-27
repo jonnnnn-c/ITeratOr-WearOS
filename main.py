@@ -230,6 +230,19 @@ def main():
         loggers["app"].info("To safely disconnect, select option 0 from the menu or press Ctrl+C to exit the script.\n")
 
         if emulated:
+            case_number = None
+            while True:
+                user_input = input("\nEnter an optional Case Number (integer) or press Enter to skip: ").strip()
+                if not user_input:  # If user presses Enter, skip
+                    loggers["app"].info("No case number provided. Proceeding without it.")
+                    break
+                elif user_input.isdigit():  # Validate if the input is a positive integer
+                    case_number = int(user_input)
+                    loggers["app"].info(f"User entered case number: {case_number}")
+                    break
+                else:
+                    loggers["app"].warning("Invalid case number entered. It must be an integer.")
+                    print("Invalid input. Case number must be an integer. Please try again.")
             display_menu(case_number, device_name)
         else:
             device_name = network_management.get_physical_device_name()
