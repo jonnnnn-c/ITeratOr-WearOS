@@ -46,12 +46,7 @@ D.	Analysis Phase
     - Sign in to your google account
     - Click "Create API key"
     - Click "Create API key in new project"
-    - Copy api key and put it into the environment as `GENAI_API_KEY="<api_key>"`
-    
-    ```
-    sudo nano ~/.bashrc
-    export GENAI_API_KEY="<api_key>"
-    ```
+    - Copy api key and put it `settings.py` file, under `GENAI_API_KEY`
 
 5. Start app
     ```

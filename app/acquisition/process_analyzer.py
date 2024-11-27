@@ -20,10 +20,6 @@ upload_dir = settings.ANALYZE_PROCESSES_DIR
 output_file_path = os.path.join(upload_dir, "process_analyzer_output.txt")
 
 
-# Configure GenAI if the API key is available
-if settings.GENAI_API_KEY:
-    genai.configure(api_key=settings.GENAI_API_KEY)
-
 # ANALYZING STUFF
 
 def get_running_processes():
@@ -91,11 +87,6 @@ def search_descriptions(package_names, timeout=15):
             for name in package_names
         ]
 
-    model = genai.GenerativeModel(
-        model_name="gemini-1.5-flash",
-        generation_config={"response_mime_type": "application/json"},
-    )
-
     prompt = f"""{package_names} The following is the result of adb ps -A, and I have no idea what these processes are; 
         could you please provide a brief description of what they may be and what their purpose is? If you're unsure, 
         it might be a user-installed item; you can search for it in the app store or Google. 
@@ -106,9 +97,16 @@ def search_descriptions(package_names, timeout=15):
         Return: list[processes]
     """
 
+    genai.configure(api_key=settings.GENAI_API_KEY)
+    model = genai.GenerativeModel(
+        model_name="gemini-1.5-flash",
+        generation_config={"response_mime_type": "application/json"},
+    )
+
     try:
         response = model.generate_content(prompt)
         descriptions_list = json.loads(response.text)
+        print(descriptions_list)
         return descriptions_list
 
     except Exception as e:
@@ -153,6 +151,10 @@ def categorize_processes(processes, system_packages):
     unknown_processes = []
     system_apps = []
 
+    # Load user settings
+    user_settings = choices.load_user_settings()
+    generate_descriptions = user_settings.get("generate_descriptions", "unknown")  # Default to "unknown"
+    
     for pid, ppid, user, process_name in processes:
         # Retrieve version information
         version = get_package_version(process_name)
@@ -176,6 +178,85 @@ def categorize_processes(processes, system_packages):
             f"Classified as unknown process: {process_name} (PID: {pid})"
         )
 
+    if settings.GENAI_API_KEY:
+        loggers["acquisition"].info(
+            "API key found. Attempting to retrieve descriptions for processes."
+        )
+        # Determine which processes to retrieve descriptions for
+        processes_to_describe = []
+        if generate_descriptions == "all":
+            processes_to_describe = critical_processes + system_apps + unknown_processes
+        elif generate_descriptions == "unknown":
+            processes_to_describe = unknown_processes
+        elif generate_descriptions == "no":
+            loggers["acquisition"].warning(
+                "GENAI Process Descriptions turned off. No descriptions will be retrieved."
+            )
+        else:
+            loggers["acquisition"].warning(
+                "Invalid value for generate_descriptions. No descriptions will be retrieved."
+            )
+        all_process_names = [process[3] for process in processes_to_describe]
+        descriptions_list = search_descriptions(all_process_names)
+        print(descriptions_list)
+        descriptions_dict = {
+            item["process_name"]: item["description"] for item in descriptions_list
+        }
+        print(descriptions_dict)
+        
+        # Add descriptions for critical processes
+        if generate_descriptions in ("all",):
+            for i in range(len(critical_processes)):
+                pid, ppid, user, process_name, version, _ = critical_processes[i]
+                process_description = descriptions_dict.get(
+                    process_name, "No description found"
+                )
+                critical_processes[i] = (pid, ppid, user, process_name, version, process_description)
+                loggers["acquisition"].debug(
+                    f"Retrieved description for critical process: {process_name}"
+                )
+        # Add descriptions for system apps
+        if generate_descriptions in ("all",):
+            for i in range(len(system_apps)):
+                pid, ppid, user, process_name, version, _ = system_apps[i]
+                process_description = descriptions_dict.get(
+                    process_name, "No description found"
+                )
+                system_apps[i] = (pid, ppid, user, process_name, version, process_description)
+                loggers["acquisition"].debug(
+                    f"Retrieved description for system app: {process_name}"
+                )
+        # Add descriptions for unknown processes
+        for i in range(len(unknown_processes)):
+            pid, ppid, user, process_name, version, _ = unknown_processes[i]
+            process_description = descriptions_dict.get(
+                process_name, "No description found"
+            )
+            unknown_processes[i] = (pid, ppid, user, process_name, version, process_description)
+            loggers["acquisition"].debug(
+                f"Retrieved description for unknown process: {process_name}"
+            )
+
+        loggers["acquisition"].info("Descriptions retrieval completed.")
+    else:
+        loggers["acquisition"].warning(
+            "GENAI API key not found. Descriptions will not be retrieved for processes."
+        )
+        critical_processes = [
+            (pid, ppid, user, process_name, version, "No description available")
+            for pid, ppid, user, process_name, version, _ in critical_processes
+        ]
+        system_apps = [
+            (pid, ppid, user, process_name, version, "No description available")
+            for pid, ppid, user, process_name, version, _ in system_apps
+        ]
+        unknown_processes = [
+            (pid, ppid, user, process_name, version, "No description available")
+            for pid, ppid, user, process_name, version, _ in unknown_processes
+        ]
+        
+    loggers["acquisition"].info("Process categorization completed.")
+    
     return critical_processes, system_apps, unknown_processes
 
 
@@ -205,7 +286,7 @@ def print_processes_table(
             # Print title and header to console
             print(f"\n{title}:")
             print(
-                f"{'PID':<{max_pid_length}}  {'PPID':<{max_ppid_length}}  {'User':<{max_user_length}}  {'Name':<{max_name_length}}  {'Name':<{max_vers_length}}  {'Description'}"
+                f"{'PID':<{max_pid_length}}  {'PPID':<{max_ppid_length}}  {'User':<{max_user_length}}  {'Process Name':<{max_name_length}}  {'Version':<{max_vers_length}}  {'Description'}"
             )
             print("-" * (sum(max_lengths) + 10))
 

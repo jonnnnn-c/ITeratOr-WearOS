@@ -1,5 +1,5 @@
 {
-    "network_enforcement": "disable",
+    "network_enforcement": "enable",
     "generate_descriptions": "unknown",
     "important_folders": [
         "/sdcard",
@@ -7,9 +7,9 @@
         "/data/local/tmp"
     ],
     "auto_acquisition_steps": {
-        "device_information": false,
-        "device_isolation": false,
-        "logical_data_extraction": false,
+        "device_information": true,
+        "device_isolation": true,
+        "logical_data_extraction": true,
         "process_analysis": true,
         "freeze_processes": true
     }
