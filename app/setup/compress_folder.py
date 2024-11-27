@@ -29,7 +29,7 @@ def compress_folder(folder_path, output_dir, compression_type, case_number=None)
         loggers["acquisition"].warning(f"Output directory does not exist, creating directory at {output_dir}")
     
     # Determine the output file name based on the case number
-    base_name = "case_"+case_number if case_number else "output"
+    base_name = "case_"+str(case_number) if case_number else "output"
 
     # Add appropriate extension based on compression type
     if compression_type == "zip":
