@@ -2,7 +2,7 @@ import os
 
 # ========== API Key ==========
 # Gemini API Key for Freeze Process Function
-GENAI_API_KEY = os.getenv('GENAI_API_KEY', '')
+GENAI_API_KEY = "AIxxxx"  # Input API Key here, cant get from env if not will show errors
 
 
 # ========== Paths ==========

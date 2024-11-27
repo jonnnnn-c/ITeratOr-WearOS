@@ -248,104 +248,118 @@ def check_for_given_file(given_file):
 
 def settings():
     """Configure user settings and save them to a JSON file."""
-    # Load and display current settings
+    # Load current settings
     current_settings = load_user_settings()
     loggers["app"].info(f"Current settings loaded from {USER_SETTING}")
     loggers["app"].info(json.dumps(current_settings))
 
     try:
         while True:
-            # Prompt user for which setting they want to edit
+            # Display menu
             print("\nWhich setting would you like to edit?")
             print("1. Toggle Network Enforcement")
             print("2. Edit Auto Acquisition Steps")
             print("3. Toggle GENAI Process Descriptions")
             print("0. Exit")
-            choice = input("Enter your choice (0-3): ").strip()
-            print()
-            
-            if choice == '1':
-                network_enforcement = input("Enter setting for enforcing network (e.g., 'enable/disable'): ").strip().lower()
-                while network_enforcement not in ["enable", "disable"]:
-                    print("Invalid input. Please enter 'enable' or 'disable'.")
-                    network_enforcement = input("Enter setting for enforcing network (e.g., 'enable/disable'): ").strip().lower()
 
+            choice = input("Enter your choice (0-3): ").strip()
+            loggers["app"].info(f"User selected option: {choice}")
+
+            if choice == '1':
+                # Network Enforcement Setting
+                current_value = current_settings.get('network_enforcement', 'unknown')
+                loggers["app"].info(f"Current Network Enforcement setting: '{current_value}'")
+
+                print("\nSelect a setting for enforcing network:")
+                print("1. Enable network enforcement ('enable')")
+                print("2. Disable network enforcement ('disable')")
+
+                option = input("Enter your choice (1 or 2): ").strip()
+
+                while option not in ["1", "2"]:
+                    loggers["app"].warning("Invalid input for Network Enforcement.")
+                    option = input("Enter your choice (1 or 2): ").strip()
+
+                network_enforcement = "enable" if option == "1" else "disable"
                 current_settings['network_enforcement'] = network_enforcement
-                loggers["app"].info(f"Network enforcement setting updated to '{network_enforcement}'.")
+                loggers["app"].info(
+                    f"Network enforcement setting updated to '{network_enforcement}'."
+                )
 
             elif choice == '2':
-                # Allow user to configure auto acquisition steps
-                print("Configure Auto Acquisition Steps:")
-                
-                # Display the current status of each acquisition step with formatted names
+                # Auto Acquisition Steps
+                print("\nCurrent Auto Acquisition Steps:")
                 for step, enabled in current_settings['auto_acquisition_steps'].items():
-                    formatted_step = step.replace('_', ' ').title()  # Capitalize and replace underscores
+                    formatted_step = step.replace('_', ' ').title()
                     status = "enabled" if enabled else "disabled"
                     print(f" - {formatted_step}: {status}")
-                
+                loggers["app"].info(f"Current Auto Acquisition Steps: {current_settings['auto_acquisition_steps']}")
+
                 print("\nEnter the steps you want to enable/disable (comma-separated, e.g., 'Device Information, Process Analysis') or type 'all' to toggle all:")
                 steps_input = input("Steps to toggle (leave blank to skip): ").strip()
-                
-                toggled_steps = []  # To track toggled steps for logging
+
+                toggled_steps = []
 
                 if steps_input.lower() == "all":
-                    # Toggle all steps
                     for step in current_settings['auto_acquisition_steps']:
                         current_settings['auto_acquisition_steps'][step] = not current_settings['auto_acquisition_steps'][step]
-                        # Log each step that got toggled
                         new_status = "enabled" if current_settings['auto_acquisition_steps'][step] else "disabled"
                         toggled_steps.append(f"{step.replace('_', ' ').title()}: {new_status}")
                 else:
-                    # Convert user input back to the original step keys
                     steps_to_toggle = [step.strip().replace(' ', '_').lower() for step in steps_input.split(',')]
-                    
                     for step in steps_to_toggle:
                         if step in current_settings['auto_acquisition_steps']:
                             current_settings['auto_acquisition_steps'][step] = not current_settings['auto_acquisition_steps'][step]
-                            # Log each step that got toggled
                             new_status = "enabled" if current_settings['auto_acquisition_steps'][step] else "disabled"
                             toggled_steps.append(f"{step.replace('_', ' ').title()}: {new_status}")
                         else:
-                            print(f"Invalid step: {step.replace('_', ' ').title()}. Please enter a valid step name.")
+                            loggers["app"].warning(f"Invalid step: {step.replace('_', ' ').title()}.")
 
-                # Log the toggled steps if any
                 if toggled_steps:
                     loggers["app"].info(f"Toggled auto acquisition steps: {', '.join(toggled_steps)}")
                 else:
-                    loggers["app"].info(f"nNo steps were toggled.")
-            
-            elif choice == '3':
-                generate_descriptions = input("Enter setting for generating descriptions (e.g., 'all/unknown'): ").strip().lower()
-                while generate_descriptions not in ["all", "unknown"]:
-                    print("Invalid input. Please enter 'all' or 'unknown'.")
-                    generate_descriptions = input("Enter setting for generating descriptions (e.g., 'all/unknown'): ").strip().lower()
+                    loggers["app"].info("No steps were toggled.")
 
+            elif choice == '3':
+                # GENAI Process Descriptions
+                current_value = current_settings.get('generate_descriptions', 'unknown')
+                loggers["app"].info(f"Current Generate Descriptions setting: '{current_value}'")
+
+                print("\nSelect a setting for generating descriptions:")
+                print("1. All processes ('all')")
+                print("2. Unknown processes only ('unknown')")
+                print("3. Turn off description generation ('off')")
+
+                option = input("Enter your choice (1, 2, or 3): ").strip()
+
+                while option not in ["1", "2", "3"]:
+                    loggers["app"].warning("Invalid input for Generate Descriptions setting.")
+                    option = input("Enter your choice (1, 2, or 3): ").strip()
+
+                generate_descriptions = "all" if option == "1" else "unknown" if option == "2" else "off"
                 current_settings['generate_descriptions'] = generate_descriptions
                 loggers["app"].info(f"Generate descriptions setting updated to '{generate_descriptions}'.")
-            
+
             elif choice == '0':
-                loggers["app"].info("Exiting settings configuration.")
+                loggers["app"].info("User selected to exit settings configuration.")
                 break
 
             else:
-                print("Invalid choice. Please select a valid option.")
                 loggers["app"].warning("Invalid option selected.")
 
-            # Save updated settings to the JSON file
+            # Save updated settings
             with open(USER_SETTING, 'w') as file:
                 json.dump(current_settings, file, indent=4)
             
+            print()
             loggers["app"].info(f"Settings saved to {USER_SETTING}.")
-            loggers["app"].info(json.dumps(current_settings))
+            loggers["app"].info(f"Updated settings:\n{json.dumps(current_settings, indent=4)}")
 
     except KeyboardInterrupt:
-        loggers["app"].info("Settings configuration interrupted by user.\n")
-        
-        # Save updated settings before exiting
+        loggers["app"].warning("Settings configuration interrupted by user.")
         with open(USER_SETTING, 'w') as file:
             json.dump(current_settings, file, indent=4)
-        
-        loggers["app"].info("Exiting settings configuration.")
+        loggers["app"].info("Settings saved and exiting.")
 
 
 def load_user_settings():
