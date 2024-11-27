@@ -62,12 +62,11 @@ def display_menu(case_number, device_name, choice=None):
         "Acquisition",
         "1. Auto run acquisition commands",
         "2. Manually run acquisition commands",
-        "3. Download contents retrieved",
+        "3. Compress Output Folder",
         "",
         "Others",
         "4. adb shell",
         "5. Settings",
-        "6. Compress Output Folder",
         "0. Exit"
     ]
 
@@ -98,12 +97,6 @@ def display_menu(case_number, device_name, choice=None):
             elif choice == "2":
                 run_manual_acquisition()
             elif choice == "3":
-                download_retrieved_content()
-            elif choice == "4":
-                run_adb_shell()
-            elif choice == "5":
-                settings()
-            elif choice == "6":
                 # Call compress_folder with necessary arguments
                 folder_path = OUTPUT_DIR[:-1]  # Assuming OUTPUT_DIR is defined in settings
                 output_dir = ROOT_DIR  # Assuming ROOT_DIR is defined in settings
@@ -126,7 +119,10 @@ def display_menu(case_number, device_name, choice=None):
                         loggers["app"].error(f"Failed to compress folder: {e}")
                 else:
                     loggers["app"].info(f"User cancelled output folder compression.")
-
+            elif choice == "4":
+                run_adb_shell()
+            elif choice == "5":
+                settings()
             elif choice == "0":
                 exit_program()
                 break
