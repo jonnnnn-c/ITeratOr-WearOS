@@ -7,6 +7,7 @@ from app.logs.logger_config import (
 )
 from app.preacquisition import initiate, network_management
 from app.setup.choices import *
+from app.setup.compress_folder import *
 import re
 import ipaddress
 
@@ -49,12 +50,15 @@ def parser_options():
     return parser.parse_args()
 
 
-def display_menu(device_name, choice=None):
+def display_menu(case_number, device_name, choice=None):
     """Display the main menu for the user after successful connection."""
+
+     # Handle case_number display: Use "Not Set" if it's None or empty
+    case_number_display = "Not Set" if not case_number else str(case_number)
 
     menu_options = [
         " You are connected to: " + str(device_name),
-        "",
+        "Case Number: " + case_number_display,
         "Acquisition",
         "1. Auto run acquisition commands",
         "2. Manually run acquisition commands",
@@ -63,6 +67,7 @@ def display_menu(device_name, choice=None):
         "Others",
         "4. adb shell",
         "5. Settings",
+        "6. Compress Output Folder",
         "0. Exit"
     ]
 
@@ -98,6 +103,30 @@ def display_menu(device_name, choice=None):
                 run_adb_shell()
             elif choice == "5":
                 settings()
+            elif choice == "6":
+                # Call compress_folder with necessary arguments
+                folder_path = OUTPUT_DIR[:-1]  # Assuming OUTPUT_DIR is defined in settings
+                output_dir = ROOT_DIR  # Assuming ROOT_DIR is defined in settings
+
+                # Loop to validate compression type
+                while True:
+                    compression_type = input("Choose compression type ('zip', 'tar', 'tar.gz') or 'exit' to go back: ").lower()
+                    if compression_type in ['zip', 'tar', 'tar.gz']:
+                        break  # Valid input; exit the loop
+                    elif compression_type.lower() == "exit":
+                        break
+                    else:
+                        print("Invalid compression type. Please choose 'zip', 'tar', or 'tar.gz'.")
+                        loggers["app"].warning("User entered an invalid compression type.")
+
+                if compression_type != "exit":
+                    try:
+                        compress_folder(folder_path, output_dir, compression_type, case_number)
+                    except Exception as e:
+                        loggers["app"].error(f"Failed to compress folder: {e}")
+                else:
+                    loggers["app"].info(f"User cancelled output folder compression.")
+
             elif choice == "0":
                 exit_program()
                 break
@@ -138,7 +167,7 @@ def main():
         network_interface = option.interface
         loggers["app"].info("Selected: Physical watch")
         loggers["app"].info(f"Network Interface Specified: {network_interface}")
-        success, watch_ip = initiate.initialise(network_interface)
+        success, watch_ip, case_number = initiate.initialise(network_interface)
         if not success:
             loggers["app"].error("Connection aborted. Exiting...")
             return
@@ -201,11 +230,11 @@ def main():
         loggers["app"].info("To safely disconnect, select option 0 from the menu or press Ctrl+C to exit the script.\n")
 
         if emulated:
-            display_menu(device_name)
+            display_menu(case_number, device_name)
         else:
             device_name = network_management.get_physical_device_name()
             if device_name:
-                display_menu(device_name)
+                display_menu(case_number, device_name)
             else:
                 loggers["app"].error("Unable to retrieve physical device name, please ensure you entered the correct port.")
                 exit_program()
