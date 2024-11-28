@@ -50,24 +50,26 @@ def parser_options():
     return parser.parse_args()
 
 
-def display_menu(case_number, device_name, investigator_name, choice=None):
+def display_menu(case_number, device_name, case_name, choice=None):
     """Display the main menu for the user after successful connection."""
 
     # Handle case_number display: Use "Not Set" if it's None or empty
     case_number_display = "Not Set" if not case_number else str(case_number)
 
-    # Handle investigator_name display: Use "Not Set" if it's None or empty
-    investigator_name_display = "Not Set" if not investigator_name else investigator_name
+    # Handle case_name display: Use "Not Set" if it's None or empty
+    case_name_display = "Not Set" if not case_name else case_name
 
     # Define the menu options, including investigator's name above the case number
     menu_options = [
         " You are connected to: " + str(device_name),
-        "Investigator: " + investigator_name_display,  # Display investigator's name above case number
         "Case Number: " + case_number_display,
+        "Case Name: " + case_name_display,
+        "",
         "Acquisition",
         "1. Auto run acquisition commands",
         "2. Manually run acquisition commands",
         "3. Compress Output Folder",
+        "",
         "Others",
         "4. adb shell",
         "5. Settings",
@@ -79,8 +81,8 @@ def display_menu(case_number, device_name, investigator_name, choice=None):
     separator_length = max_length + 4  # Adding space for borders
 
     # Create the equal sign separators for section headers
-    menu_options[3] = f"{'=' * ((separator_length - len(menu_options[3]) - 2) // 2)} {menu_options[3]} {'=' * ((separator_length - len(menu_options[3]) - 2 + 1) // 2)}"
-    menu_options[7] = f"{'=' * ((separator_length - len(menu_options[7]) - 2) // 2)} {menu_options[7]} {'=' * ((separator_length - len(menu_options[7]) - 2 + 1) // 2)}"
+    menu_options[4] = f"{'=' * ((separator_length - len(menu_options[4]) - 2) // 2)} {menu_options[4]} {'=' * ((separator_length - len(menu_options[4]) - 2 + 1) // 2)}"
+    menu_options[9] = f"{'=' * ((separator_length - len(menu_options[9]) - 2) // 2)} {menu_options[9]} {'=' * ((separator_length - len(menu_options[9]) - 2 + 1) // 2)}"
 
     # Add equal sign separators at the start and end
     menu_options.insert(0, "=" * separator_length)
@@ -107,22 +109,41 @@ def display_menu(case_number, device_name, investigator_name, choice=None):
 
                 # Loop to validate compression type
                 while True:
-                    compression_type = input("Choose compression type ('zip', 'tar', 'tar.gz') or 'exit' to go back: ").lower()
-                    if compression_type in ['zip', 'tar', 'tar.gz']:
+                    print("\n" + "=" * 50)
+                    print("Select Compression Type:")
+                    print("=" * 50)
+                    print("1. ZIP")
+                    print("2. TAR")
+                    print("3. TAR.GZ")
+                    print("4. Exit to go back")
+                    
+                    user_choice = input("Enter the number corresponding to your choice: ").strip()
+
+                    if user_choice == "1":
+                        compression_type = "zip"
                         break  # Valid input; exit the loop
-                    elif compression_type.lower() == "exit":
+                    elif user_choice == "2":
+                        compression_type = "tar"
+                        break
+                    elif user_choice == "3":
+                        compression_type = "tar.gz"
+                        break
+                    elif user_choice == "4":
+                        compression_type = "exit"
                         break
                     else:
-                        print("Invalid compression type. Please choose 'zip', 'tar', or 'tar.gz'.")
-                        loggers["app"].warning("User entered an invalid compression type.")
+                        print("Invalid choice. Please enter 1, 2, 3, or 4.")
+                        loggers["app"].warning("User entered an invalid compression option.")
 
                 if compression_type != "exit":
                     try:
-                        compress_folder(investigator_name, folder_path, output_dir, compression_type, case_number)
+                        compress_folder(case_name, folder_path, output_dir, compression_type, case_number)
+                        loggers["app"].info(f"Folder successfully compressed using {compression_type}.")
                     except Exception as e:
                         loggers["app"].error(f"Failed to compress folder: {e}")
                 else:
-                    loggers["app"].info(f"User cancelled output folder compression.")
+                    loggers["app"].info("User cancelled output folder compression.")
+
             elif choice == "4":
                 run_adb_shell()
             elif choice == "5":
@@ -168,7 +189,7 @@ def main():
         network_interface = option.interface
         loggers["app"].info("Selected: Physical watch")
         loggers["app"].info(f"Network Interface Specified: {network_interface}")
-        success, watch_ip, case_number = initiate.initialise(network_interface)
+        success, watch_ip, case_number, case_name = initiate.initialise(network_interface)
         if not success:
             loggers["app"].error("Connection aborted. Exiting...")
             return
@@ -228,31 +249,13 @@ def main():
         else:
             loggers["app"].warning("Device rooted: False")
             loggers["app"].warning("Device is not rooted; some commands may not work properly.\n")
-        loggers["app"].info("To safely disconnect, select option 0 from the menu or press Ctrl+C to exit the script.\n")
+        loggers["app"].info("To safely disconnect, select option 0 from the menu or press Ctrl+C to exit the script.")
 
         if emulated:
-            case_number = None
-            investigator_name = None  # Variable to store investigator's name
-            while True:
-                user_input = input("\nEnter an optional Case Number (integer) or press Enter to skip: ").strip()
-                if not user_input:  # If user presses Enter, skip
-                    loggers["app"].info("No case number provided. Proceeding without it.")
-                    break
-                elif user_input.isdigit():  # Validate if the input is a positive integer
-                    case_number = int(user_input)
-                    loggers["app"].info(f"User entered case number: {case_number}")
-                    
-                    # Ask for investigator's name if a case number was provided
-                    investigator_name = input("Enter Investigator's name: ").strip()
-                    if investigator_name:
-                        loggers["app"].info(f"Investigator's name: {investigator_name}")
-                    else:
-                        loggers["app"].info("No investigator's name provided.")
-                    break
-                else:
-                    loggers["app"].warning("Invalid case number entered. It must be an integer.")
-                    print("Invalid input. Case number must be an integer. Please try again.")
-            display_menu(case_number, device_name, investigator_name)
+            case_data = case_details()
+            case_number = case_data["case"]["case_number"]
+            case_name = case_data["case"]["case_name"]
+            display_menu(case_number, device_name, case_name)
         else:
             device_name = network_management.get_physical_device_name()
             if device_name:

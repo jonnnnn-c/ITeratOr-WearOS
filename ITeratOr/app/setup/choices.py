@@ -12,8 +12,122 @@ from app.acquisition import (
 )
 from app.setup.settings import *
 
+from app.setup import settings
+from datetime import datetime
+
 # Initialize all loggers
 loggers = initialize_loggers()
+
+# Set output folder and output file path
+upload_dir = settings.OUTPUT_DIR
+output_file_path = os.path.join(upload_dir, "case_information.txt")
+
+
+def case_details():
+    """
+    Collects detailed case, examiner, and organization information
+    and saves them to a specified file.
+
+    Returns:
+        dict: A dictionary containing the collected information.
+    """
+    # Initialize the data structure
+    data = {
+        "case": {
+            "case_name": None,
+            "case_number": None,
+            "created_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "case_type": None,
+        },
+        "examiner": {
+            "name": None,
+            "phone": None,
+            "email": None,
+            "note": None,
+        },
+        "organization": {
+            "name": None,
+            "point_of_contact": None,
+            "phone": None,
+            "email": None,
+        },
+    }
+
+    # Collect case details
+    print("\n" + "=" * 50)
+    print("Optional: Case Details")
+    print("=" * 50)
+    print(f"**Type in the necessary information or press Enter to skip any input. \nDetails will be saved to {output_file_path}**\n")
+    
+    data["case"]["case_name"] = input("Case Name: ").strip()
+    loggers["app"].info(f"Case Name: {data['case']['case_name'] or 'Not provided'}")
+
+    case_number = input("Case Number (integer): ").strip()
+    data["case"]["case_number"] = int(case_number) if case_number.isdigit() else None
+    loggers["app"].info(f"Case Number: {data['case']['case_number'] or 'Not provided'}")
+
+    data["case"]["case_type"] = input("Case Type: ").strip()
+    loggers["app"].info(f"Case Type: {data['case']['case_type'] or 'Not provided'}")
+
+    # Collect examiner details
+    print("\n" + "=" * 50)
+    print("Examiner Details")
+    print("=" * 50)
+    data["examiner"]["name"] = input("Examiner Name: ").strip()
+    loggers["app"].info(f"Examiner Name: {data['examiner']['name'] or 'Not provided'}")
+
+    data["examiner"]["phone"] = input("Examiner Phone: ").strip()
+    loggers["app"].info(f"Examiner Phone: {data['examiner']['phone'] or 'Not provided'}")
+
+    data["examiner"]["email"] = input("Examiner Email: ").strip()
+    loggers["app"].info(f"Examiner Email: {data['examiner']['email'] or 'Not provided'}")
+
+    data["examiner"]["note"] = input("Examiner Note: ").strip()
+    loggers["app"].info(f"Examiner Note: {data['examiner']['note'] or 'Not provided'}")
+
+    # Collect organization details
+    print("\n" + "=" * 50)
+    print("Organization Details")
+    print("=" * 50)
+    data["organization"]["name"] = input("Organization Name: ").strip()
+    loggers["app"].info(f"Organization Name: {data['organization']['name'] or 'Not provided'}")
+
+    data["organization"]["point_of_contact"] = input("Point of Contact: ").strip()
+    loggers["app"].info(f"Point of Contact: {data['organization']['point_of_contact'] or 'Not provided'}")
+
+    data["organization"]["phone"] = input("Organization Phone: ").strip()
+    loggers["app"].info(f"Organization Phone: {data['organization']['phone'] or 'Not provided'}")
+
+    data["organization"]["email"] = input("Organization Email: ").strip()
+    loggers["app"].info(f"Organization Email: {data['organization']['email'] or 'Not provided'}")
+
+    # Save the information to the output file
+    try:
+        with open(output_file_path, "w") as file:
+            file.write("Case Information\n")
+            file.write("=" * 50 + "\n\n")
+            file.write("Case:\n")
+            file.write(f"  Case Name: {data['case']['case_name'] or 'Not provided'}\n")
+            file.write(f"  Case Number: {data['case']['case_number'] or 'Not provided'}\n")
+            file.write(f"  Created Date: {data['case']['created_date']}\n")
+            file.write(f"  Case Type: {data['case']['case_type'] or 'Not provided'}\n\n")
+
+            file.write("Examiner:\n")
+            file.write(f"  Name: {data['examiner']['name'] or 'Not provided'}\n")
+            file.write(f"  Phone: {data['examiner']['phone'] or 'Not provided'}\n")
+            file.write(f"  Email: {data['examiner']['email'] or 'Not provided'}\n")
+            file.write(f"  Note: {data['examiner']['note'] or 'Not provided'}\n\n")
+
+            file.write("Organization:\n")
+            file.write(f"  Name: {data['organization']['name'] or 'Not provided'}\n")
+            file.write(f"  Point of Contact: {data['organization']['point_of_contact'] or 'Not provided'}\n")
+            file.write(f"  Phone: {data['organization']['phone'] or 'Not provided'}\n")
+            file.write(f"  Email: {data['organization']['email'] or 'Not provided'}\n")
+        loggers["app"].info(f"Case information saved to {output_file_path}")
+    except Exception as e:
+        loggers["app"].error(f"Failed to save case information: {e}")
+
+    return data
 
 
 def run_auto_acquisition():

@@ -45,27 +45,9 @@ def initialise(network_interface):
         loggers["network"].info("Network security check passed successfully.")
 
         # Step 3: Prompt user for an optional case number (integer)
-        case_number = None
-        investigator_name = None  # Variable to store investigator's name
-        while True:
-            user_input = input("\nEnter an optional Case Number (integer) or press Enter to skip: ").strip()
-            if not user_input:  # If user presses Enter, skip
-                loggers["app"].info("No case number provided. Proceeding without it.")
-                break
-            elif user_input.isdigit():  # Validate if the input is a positive integer
-                case_number = int(user_input)
-                loggers["app"].info(f"User entered case number: {case_number}")
-                
-                # Ask for investigator's name if a case number was provided
-                investigator_name = input("Enter Investigator's name: ").strip()
-                if investigator_name:
-                    loggers["app"].info(f"Investigator's name: {investigator_name}")
-                else:
-                    loggers["app"].info("No investigator's name provided.")
-                break
-            else:
-                loggers["app"].warning("Invalid case number entered. It must be an integer.")
-                print("Invalid input. Case number must be an integer. Please try again.")
+        case_data = case_details()
+        case_number = case_data["case"]["case_number"]
+        case_name = case_data["case"]["case_name"]
 
         # Step 4: Prompt for optional router IP for vulnerability scan
         while True:
@@ -127,7 +109,7 @@ def initialise(network_interface):
             # Step 9: Attempt to connect to the smartwatch
             if connect_to_device(watch_ip):
                 loggers["network"].info("Successfully established a connection to the smartwatch.")
-                return True, watch_ip, case_number
+                return True, watch_ip, case_number, case_name
             else:
                 loggers["network"].error("Failed to establish a connection with the smartwatch after verification.")
         else:
