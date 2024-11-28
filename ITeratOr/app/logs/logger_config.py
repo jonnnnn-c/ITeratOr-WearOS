@@ -123,6 +123,31 @@ def run_adb_command(command, task, error=True):
                 f"[WARNING] Error while running command: {' '.join(command)}\n")
         return None
 
+
+def run_adb_command_output(command, task, error=True):
+    """Function to run ADB commands and handle errors with adb output"""
+    try:
+        # Log task performed
+        loggers["acquisition"].info(task)
+        
+        subprocess.run(
+            command,
+            shell=True
+        )
+
+        loggers["acquisition"].debug(
+            f"[SUCCESS] Command succeeded: {command}")
+
+    except subprocess.CalledProcessError as e:
+        if error:
+            loggers["acquisition"].error(
+                f"[FAILED] Error while running command: {command}\n")
+        else:
+            loggers["acquisition"].warning(
+                f"[WARNING] Error while running command: {command}\n")
+        return None
+
+
 def append_to_output_file(output_file_path, data, action="a", add_newline=True):
     """Append data to the output file with an optional newline."""
     try:

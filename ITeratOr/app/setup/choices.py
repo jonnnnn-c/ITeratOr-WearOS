@@ -1,13 +1,12 @@
 import os
 import json
 import subprocess
+from app.acquisition import data_extraction
 from app.preacquisition import network_management
 from app.logs.logger_config import initialize_loggers
 from app.acquisition import (
     device_information, 
-    device_isolation, 
-    hash_generator,
-    logical_data_extraction, 
+    device_isolation,
     process_analyzer
 )
 from app.setup.settings import *
@@ -167,11 +166,11 @@ def run_auto_acquisition():
             "========== Step 2: Running isolation of device commands ==========")
         device_isolation.isolate_device_state()
 
-    # 3: Logical Data Extraction Step
-    if acquisition_steps.get("logical_data_extraction", True):
+    # 3: Data Extraction Step
+    if acquisition_steps.get("data_extraction", True):
         loggers["acquisition"].info(
-            "========== Step 3: Running logical data extraction ==========")
-        logical_data_extraction.run_data_extraction()
+            "========== Step 3: Running data extraction ==========")
+        data_extraction.run_data_extraction()
 
     # 4: Process Analysis Step
     if acquisition_steps.get("process_analysis", True):
@@ -197,7 +196,7 @@ def run_manual_acquisition():
         categories = {
             "Device Information": device_information.available_functions(),
             "Isolate Device": device_isolation.available_functions(),
-            "Logical Data Extraction": logical_data_extraction.available_functions(),
+            "Data Extraction": data_extraction.available_functions(),
             "Analyze Processes": process_analyzer.available_functions()
         }
 
@@ -272,10 +271,10 @@ def run_manual_acquisition():
                 loggers["app"].info(
                     f"Executing function: {selected_func_name} in {selected_category}\n")
                 getattr(device_isolation, selected_func_name)()
-            elif selected_category == "Logical Data Extraction":
+            elif selected_category == "Data Extraction":
                 loggers["app"].info(
                     f"Executing function: {selected_func_name} in {selected_category}\n")
-                getattr(logical_data_extraction, selected_func_name)()
+                getattr(data_extraction, selected_func_name)()
             elif selected_category == "Analyze Processes":
                 loggers["app"].info(
                     f"Executing function: {selected_func_name} in {selected_category}\n")
@@ -349,14 +348,6 @@ def run_adb_shell():
 def download_retrieved_content():
     """Download the contents retrieved during acquisition."""
     loggers["app"].info("Downloading contents retrieved.")
-
-
-def run_hash_generation():
-    """Run the hash generation process."""
-    try:
-        hash_generator.main()
-    except Exception as e:
-        loggers["app"].error(f"Error during hash generation: {str(e)}")
 
 
 def check_for_given_file(given_file):
