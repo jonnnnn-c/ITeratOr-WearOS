@@ -53,6 +53,16 @@ def case_details():
         },
     }
 
+    # Ask user if they want to enter case details
+    print("\n" + "=" * 50)
+    print("Case Details Input")
+    print("=" * 50)
+    enter_details = input("Do you want to enter case details? (Press Enter to skip or type 'yes' to proceed): ").strip().lower()
+
+    if enter_details != "yes":
+        loggers["app"].info("Skipping case details entry.")
+        return data
+
     # Collect case details
     print("\n" + "=" * 50)
     print("Optional: Case Details")
