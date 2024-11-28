@@ -13,22 +13,108 @@ output_file_path = os.path.join(upload_dir, "device_information.txt")
 
 def get_device_info():
     """Function to capture device model and OS information"""
+    device_name = run_adb_command(
+        ["adb", "shell", "getprop", "ro.product.name"],
+        "Retrieving: device name"
+    )
     device_model = run_adb_command(
         ["adb", "shell", "getprop", "ro.product.model"],
         "Retrieving: device model"
     )
-    android_version = run_adb_command(
-        ["adb", "shell", "getprop", "ro.build.version.release"],
-        "Retrieving: android version"
+    device_manufacturer = run_adb_command(
+        ["adb", "shell", "getprop", "ro.product.manufacturer"],
+        "Retrieving: device manufacturer"
     )
     serial_number = run_adb_command(
         ["adb", "shell", "getprop", "ro.serialno"],
         "Retrieving: serial number"
     )
+    device_code = run_adb_command(
+        ["adb", "shell", "getprop", "ro.product.code"],
+        "Retrieving: device code"
+    )
+    device_chip = run_adb_command(
+        ["adb", "shell", "getprop", "ro.chipname"],
+        "Retrieving: device chipset"
+    )
+    append_to_output_file(output_file_path, f"Device Name: {device_name}")
     append_to_output_file(output_file_path, f"Device Model: {device_model}")
-    append_to_output_file(
-        output_file_path, f"Android Version: {android_version}")
+    append_to_output_file(output_file_path, f"Device Manufacturer: {device_manufacturer}")
     append_to_output_file(output_file_path, f"Serial Number: {serial_number}")
+    append_to_output_file(output_file_path, f"Device Code: {device_code}")
+    append_to_output_file(output_file_path, f"Device Chip: {device_chip}")
+
+
+def get_envs_info():
+    """Function to capture device environment information"""
+    build_id = run_adb_command(
+        ["adb", "shell", "getprop", "ro.build.id"],
+        "Retrieving: system build ID"
+    )
+    build_date = run_adb_command(
+        ["adb", "shell", "getprop", "ro.build.date"],
+        "Retrieving: system build date"
+    )
+    build_fingerprint = run_adb_command(
+        ["adb", "shell", "getprop", "ro.build.fingerprint"],
+        "Retrieving: system build fingerprint"
+    )
+    build_version = run_adb_command(
+        ["adb", "shell", "getprop", "ro.build.version.release"],
+        "Retrieving: android version"
+    )
+    build_security_path = run_adb_command(
+        ["adb", "shell", "getprop", "ro.build.version.security_patch"],
+        "Retrieving: latest android security patch"
+    )
+    build_bootloader = run_adb_command(
+        ["adb", "shell", "getprop", "ro.boot.bootloader"],
+        "Retrieving: build bootloader"
+    )
+    sys_timezone = run_adb_command(
+        ["adb", "shell", "getprop", "persist.sys.timezone"],
+        "Retrieving: device timezone"
+    )
+    sys_uptime = run_adb_command(
+        ["adb", "shell", "uptime"],
+        "Retrieving: device uptime"
+    )
+    kernel_info = run_adb_command(
+        ["adb", "shell", "cat", "/proc/version"],
+        "Retrieving: kernel information"
+    )
+    usr_priv = run_adb_command(
+        ["adb", "shell", "id"],
+        "Retrieving: user privileges"
+    )
+    su_priv = run_adb_command(
+        ["adb", "shell", "su", "-c", "id"],
+        "Retrieving: superuser privileges"
+    )
+    append_to_output_file(output_file_path, f"Device Build ID: {build_id}")
+    append_to_output_file(output_file_path, f"Device Build Date: {build_date}")
+    append_to_output_file(
+        output_file_path, f"Device Build Fingerprint: {build_fingerprint}")
+    append_to_output_file(output_file_path, f"Android Version: {build_version}")
+    append_to_output_file(
+        output_file_path, f"Latest Security Patch: {build_security_path}")
+    append_to_output_file(
+        output_file_path, f"Device Bootloader: {build_bootloader}")
+    append_to_output_file(output_file_path, f"Device Timezone: {sys_timezone}")
+    append_to_output_file(output_file_path, f"Device Uptime: {sys_uptime}")
+    append_to_output_file(output_file_path, f"Kernel Information: {kernel_info}")
+    append_to_output_file(output_file_path, f"User Privileges: {usr_priv}")
+    append_to_output_file(output_file_path, f"Superuser Privileges: {su_priv}")
+
+
+def get_disk_partition():
+    """Function to capture all disk partitions and configurations"""
+    disk_partition = run_adb_command(
+        ["adb", "shell", "cat", "/proc/diskstats"],
+        "Retrieving: disk partitions"
+    )
+    append_to_output_file(
+        output_file_path, f"Disk Partitions: {disk_partition}")
 
 
 def get_network_info():
@@ -45,6 +131,16 @@ def get_network_info():
         output_file_path, f"Network Interfaces:\n{network_interfaces}")
     append_to_output_file(output_file_path, f"WiFi Info:\n{wifi_info}")
 
+
+def get_biometric_info():
+    """Function to capture biometric information"""
+    biometric_info = run_adb_command(
+        ["adb", "shell", "dumpsys", "biometric"],
+        "Retrieving: biometric information"
+    )
+    append_to_output_file(
+        output_file_path, f"Biometric Information:\n{biometric_info}")
+    
 
 def get_battery_status():
     """Function to capture battery status"""
@@ -67,10 +163,28 @@ def get_storage_info():
 
 def get_installed_packages():
     """Function to list installed applications"""
+    device_usrs = run_adb_command(
+        ["adb", "shell", "pm", "list", "users"],
+        "Retrieving: device users"
+    )
+    permission_grp = run_adb_command(
+        ["adb", "shell", "pm", "list", "permission-groups"],
+        "Retrieving: device permission groups"
+    )
+    packages_permissions = run_adb_command(
+        ["adb", "shell", "pm", "list", "permissions", "-f"],
+        "Retrieving: packages permisisons"
+    )
     installed_packages = run_adb_command(
         ["adb", "shell", "pm", "list", "packages"],
         "Retrieving: installed packages"
     )
+    append_to_output_file(
+        output_file_path, f"Device Users:\n{device_usrs}")
+    append_to_output_file(
+        output_file_path, f"Device Permission Groups:\n{installed_packages}")
+    append_to_output_file(
+        output_file_path, f"Installed Packages:\n{packages_permissions}")
     append_to_output_file(
         output_file_path, f"Installed Packages:\n{installed_packages}")
 
@@ -81,8 +195,14 @@ def get_running_processes():
         ["adb", "shell", "ps", "-A"],
         "Retrieving: running processes"
     )
+    memory_info = run_adb_command(
+        ["adb", "shell", "dumpsys", "meminfo"],
+        "Retrieving: running processes"
+    )
     append_to_output_file(
         output_file_path, f"Running Processes:\n{running_processes}")
+    append_to_output_file(
+        output_file_path, f"Memory Information:\n{memory_info}")
 
 
 def get_running_services():
@@ -98,11 +218,29 @@ def get_running_services():
 def get_network_connections():
     """Function to get current network connections"""
     network_connections = run_adb_command(
-        ["adb", "shell", "netstat"],
+        ["adb", "shell", "netstat", "-an"],
         "Retrieving: network connections"
+    )
+    network_rules = run_adb_command(
+        ["adb", "shell", "dumpsys", "network_management"],
+        "Retrieving: WiFi info"
+    )
+    network_logs = run_adb_command(
+        ["adb", "shell", "dumpsys", "connectivity"],
+        "Retrieving: WiFi info"
+    )
+    persistent_jobs = run_adb_command(
+        ["adb", "shell", "dumpsys", "jobscheduler"],
+        "Retrieving: WiFi info"
     )
     append_to_output_file(
         output_file_path, f"Network Connections:\n{network_connections}")
+    append_to_output_file(
+        output_file_path, f"Network Rules:\n{network_rules}")
+    append_to_output_file(
+        output_file_path, f"Network Logs:\n{network_logs}")
+    append_to_output_file(
+        output_file_path, f"Persistent Jobs:\n{persistent_jobs}")
 
 
 def get_encryption_status():
@@ -169,7 +307,10 @@ def available_functions():
 
     return {
         "get_device_info": "Capture device model, android version, and serial number",
+        "get_envs_info": "Capture all environment configuration",
+        "get_disk_partition": "Capture all disk partitions and configurations",
         "get_network_info": "Capture network interfaces, and WiFi info",
+        "get_biometric_info": "Capture biometric information",
         "get_battery_status": "Capture battery status",
         "get_storage_info": "Capture storage information",
         "get_installed_packages": "List installed applications",
