@@ -259,7 +259,7 @@ def main():
         else:
             device_name = network_management.get_physical_device_name()
             if device_name:
-                display_menu(case_number, device_name)
+                display_menu(case_number, device_name, case_name)
             else:
                 loggers["app"].error("Unable to retrieve physical device name, please ensure you entered the correct port.")
                 exit_program()

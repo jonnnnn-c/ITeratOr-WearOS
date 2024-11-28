@@ -7,7 +7,7 @@ from app.logs.logger_config import initialize_loggers
 # Initialize all loggers
 loggers = initialize_loggers()
 
-def compress_folder(investigator_name, folder_path, output_dir, compression_type, case_number=None):
+def compress_folder(case_name, folder_path, output_dir, compression_type, case_number=None):
     """
     Compresses a given folder using the specified compression type and saves it in the output directory.
 
@@ -29,7 +29,7 @@ def compress_folder(investigator_name, folder_path, output_dir, compression_type
         loggers["acquisition"].warning(f"Output directory does not exist, creating directory at {output_dir}")
     
     # Determine the output file name based on the case number
-    base_name = str(investigator_name)+"_"+str(case_number) if case_number else "output"
+    base_name = str(case_name)+"_"+str(case_number) if case_number else "output"
 
     # Add appropriate extension based on compression type
     if compression_type == "zip":
