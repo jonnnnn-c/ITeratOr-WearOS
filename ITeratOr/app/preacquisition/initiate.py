@@ -32,7 +32,7 @@ def initialise(network_interface):
         current_network_essid = get_current_network_essid(network_interface)
         if not current_network_essid:
             loggers["network"].error("Failed to retrieve the current network. Exiting setup.")
-            return False, None, None
+            return False, None, None, None
         
         loggers["network"].info(f"Currently connected to ESSID: {current_network_essid}")
 
@@ -40,7 +40,7 @@ def initialise(network_interface):
         loggers["network"].info("Performing security check on the current network...")
         if not iwlist_security_check(network_interface, current_network_essid):
             loggers["network"].error("Security scan failed. Aborting connection setup.")
-            return False, None, None
+            return False, None, None, None
         
         loggers["network"].info("Network security check passed successfully.")
 
@@ -87,7 +87,7 @@ def initialise(network_interface):
         success, watch_ip = pair_device()
         if not success:
             loggers["network"].error("Failed to pair with the smartwatch. Ensure it's in pairing mode and try again.")
-            return False, None, None
+            return False, None, None, None
 
         loggers["network"].info(f"Smartwatch paired successfully with IP: {watch_ip}")
 
@@ -102,7 +102,7 @@ def initialise(network_interface):
             loggers["network"].debug(f"Current device IP: {current_device_ip}")
         else:
             loggers["network"].error("Failed to retrieve the current device IP. Check network configuration.")
-            return False, None, None
+            return False, None, None, None
 
         # Step 8: Verify network communication with smartwatch
         if verify_network_devices(current_device_ip, watch_ip, network_interface):
@@ -115,12 +115,12 @@ def initialise(network_interface):
         else:
             loggers["network"].error("Network verification failed. Please check your connections and try again.")
 
-        return False, watch_ip, None
+        return False, watch_ip, None, None
 
     except KeyboardInterrupt:
         loggers["app"].warning("Keyboard Interrupt: Setup process terminated by user.")
         exit_program()  # Ensure cleanup if needed
-        return False, None, None
+        return False, None, None, None
     except Exception as e:
         loggers["app"].error(f"An unexpected error occurred: {e}")
-        return False, None, None
+        return False, None, None, None
