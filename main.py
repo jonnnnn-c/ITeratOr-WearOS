@@ -50,20 +50,24 @@ def parser_options():
     return parser.parse_args()
 
 
-def display_menu(case_number, device_name, choice=None):
+def display_menu(case_number, device_name, investigator_name, choice=None):
     """Display the main menu for the user after successful connection."""
 
-     # Handle case_number display: Use "Not Set" if it's None or empty
+    # Handle case_number display: Use "Not Set" if it's None or empty
     case_number_display = "Not Set" if not case_number else str(case_number)
 
+    # Handle investigator_name display: Use "Not Set" if it's None or empty
+    investigator_name_display = "Not Set" if not investigator_name else investigator_name
+
+    # Define the menu options, including investigator's name above the case number
     menu_options = [
         " You are connected to: " + str(device_name),
+        "Investigator: " + investigator_name_display,  # Display investigator's name above case number
         "Case Number: " + case_number_display,
         "Acquisition",
         "1. Auto run acquisition commands",
         "2. Manually run acquisition commands",
         "3. Compress Output Folder",
-        "",
         "Others",
         "4. adb shell",
         "5. Settings",
@@ -75,7 +79,7 @@ def display_menu(case_number, device_name, choice=None):
     separator_length = max_length + 4  # Adding space for borders
 
     # Create the equal sign separators for section headers
-    menu_options[2] = f"{'=' * ((separator_length - len(menu_options[2]) - 2) // 2)} {menu_options[2]} {'=' * ((separator_length - len(menu_options[2]) - 2 + 1) // 2)}"
+    menu_options[3] = f"{'=' * ((separator_length - len(menu_options[3]) - 2) // 2)} {menu_options[3]} {'=' * ((separator_length - len(menu_options[3]) - 2 + 1) // 2)}"
     menu_options[7] = f"{'=' * ((separator_length - len(menu_options[7]) - 2) // 2)} {menu_options[7]} {'=' * ((separator_length - len(menu_options[7]) - 2 + 1) // 2)}"
 
     # Add equal sign separators at the start and end
@@ -114,7 +118,7 @@ def display_menu(case_number, device_name, choice=None):
 
                 if compression_type != "exit":
                     try:
-                        compress_folder(folder_path, output_dir, compression_type, case_number)
+                        compress_folder(investigator_name, folder_path, output_dir, compression_type, case_number)
                     except Exception as e:
                         loggers["app"].error(f"Failed to compress folder: {e}")
                 else:
@@ -133,6 +137,7 @@ def display_menu(case_number, device_name, choice=None):
         except Exception as e:
             loggers["app"].error(f"An error occurred: {str(e)}")
             choice = None  # Reset choice for re-prompting
+
 
 def print_boxed_menu(options):
     """Prints the menu inside a simple ASCII box."""
@@ -227,6 +232,7 @@ def main():
 
         if emulated:
             case_number = None
+            investigator_name = None  # Variable to store investigator's name
             while True:
                 user_input = input("\nEnter an optional Case Number (integer) or press Enter to skip: ").strip()
                 if not user_input:  # If user presses Enter, skip
@@ -235,11 +241,18 @@ def main():
                 elif user_input.isdigit():  # Validate if the input is a positive integer
                     case_number = int(user_input)
                     loggers["app"].info(f"User entered case number: {case_number}")
+                    
+                    # Ask for investigator's name if a case number was provided
+                    investigator_name = input("Enter Investigator's name: ").strip()
+                    if investigator_name:
+                        loggers["app"].info(f"Investigator's name: {investigator_name}")
+                    else:
+                        loggers["app"].info("No investigator's name provided.")
                     break
                 else:
                     loggers["app"].warning("Invalid case number entered. It must be an integer.")
                     print("Invalid input. Case number must be an integer. Please try again.")
-            display_menu(case_number, device_name)
+            display_menu(case_number, device_name, investigator_name)
         else:
             device_name = network_management.get_physical_device_name()
             if device_name:

@@ -46,6 +46,7 @@ def initialise(network_interface):
 
         # Step 3: Prompt user for an optional case number (integer)
         case_number = None
+        investigator_name = None  # Variable to store investigator's name
         while True:
             user_input = input("\nEnter an optional Case Number (integer) or press Enter to skip: ").strip()
             if not user_input:  # If user presses Enter, skip
@@ -54,6 +55,13 @@ def initialise(network_interface):
             elif user_input.isdigit():  # Validate if the input is a positive integer
                 case_number = int(user_input)
                 loggers["app"].info(f"User entered case number: {case_number}")
+                
+                # Ask for investigator's name if a case number was provided
+                investigator_name = input("Enter Investigator's name: ").strip()
+                if investigator_name:
+                    loggers["app"].info(f"Investigator's name: {investigator_name}")
+                else:
+                    loggers["app"].info("No investigator's name provided.")
                 break
             else:
                 loggers["app"].warning("Invalid case number entered. It must be an integer.")
