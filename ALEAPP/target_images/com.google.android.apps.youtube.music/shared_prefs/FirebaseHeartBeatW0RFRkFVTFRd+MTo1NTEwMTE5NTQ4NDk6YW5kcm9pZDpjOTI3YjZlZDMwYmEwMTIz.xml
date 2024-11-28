@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<map>
+    <set name="android-min-sdk/28 android-platform/watch fire-android/34 fire-iid/21.1.1 android-installer/com.android.vending fire-core/21.0.0_1p fire-installations/17.0.2_1p fire-fcm/23.3.2_1p device-brand/google fire-analytics/22.2.0 fire-transport/19.0.0_1p device-name/sdk_gwear_x86_64 android-target-sdk/34 device-model/emu64xa">
+        <string>2024-09-28</string>
+    </set>
+    <long name="fire-count" value="1" />
+    <string name="last-used-date">2024-09-28</string>
+    <long name="fire-global" value="1727514523779" />
+</map>

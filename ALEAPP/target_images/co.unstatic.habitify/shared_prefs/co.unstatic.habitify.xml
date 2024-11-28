@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<map>
+    <int name="all_time_of_day_total_count_null" value="1" />
+    <int name="all_time_of_day_total_count_EooHQ9HT12Y2tgUlYEcZz6pUEB42" value="3" />
+    <boolean name="pref_journal_show_all_time_of_day" value="true" />
+    <long name="pref_date_filter_millisecond" value="1730125585298" />
+    <int name="all_time_of_day_pending_count_null" value="1" />
+    <int name="all_time_of_day_pending_count_EooHQ9HT12Y2tgUlYEcZz6pUEB42" value="3" />
+</map>
