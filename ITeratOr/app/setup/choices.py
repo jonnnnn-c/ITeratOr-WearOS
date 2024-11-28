@@ -157,31 +157,31 @@ def run_auto_acquisition():
     # 1: Device Information Step
     if acquisition_steps.get("device_information", True):
         loggers["acquisition"].info(
-            "========== Step 1: Running device information commands ==========")
+            f"\n\n{50*'='} \nStep 1: Running device information commands \n{50*'='}\n")
         device_information.document_device_state()
 
     # 2: Device Isolation Step
     if acquisition_steps.get("device_isolation", True):
         loggers["acquisition"].info(
-            "========== Step 2: Running isolation of device commands ==========")
+            f"\n\n{50*'='} \nStep 2: Running isolation of device commands \n{50*'='}\n")
         device_isolation.isolate_device_state()
 
     # 3: Data Extraction Step
     if acquisition_steps.get("data_extraction", True):
         loggers["acquisition"].info(
-            "========== Step 3: Running data extraction ==========")
+            f"\n\n{50*'='} \nStep 3: Running data extraction \n{50*'='}\n")
         data_extraction.run_data_extraction()
 
     # 4: Process Analysis Step
     if acquisition_steps.get("process_analysis", True):
         loggers["acquisition"].info(
-            "========== Step 4: Running process analysis commands ==========")
+            f"\n\n{50*'='} \nStep 4: Running process analysis commands \n{50*'='}\n")
         process_analyzer.analyze_device_processes()
 
     # 5: Freeze Processes Step
     if acquisition_steps.get("freeze_processes", True):
         loggers["acquisition"].info(
-            "========== Step 5: Freezing device processes ==========")
+            f"\n\n{50*'='} \nStep 5: Freezing device processes \n{50*'='}\n")
         process_analyzer.freeze_device_processes()
 
     loggers["app"].info("Auto acquisition process completed.")

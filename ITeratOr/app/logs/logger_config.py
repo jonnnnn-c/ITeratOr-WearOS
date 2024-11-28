@@ -15,7 +15,8 @@ log_files = {
     "app.log",
     "env_setup.log",
     "network.log",
-    "acquisition.log"
+    "acquisition.log",
+    "compress.log"
 }
 
 
