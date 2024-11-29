@@ -11,7 +11,7 @@ B.	Pre-Acquisition Phase
 
 C.	Acquisition Phase
 
-- To ensure data integrity, we modelled our strategy demonstrated by earlier researchers, prioritizing the capture of volatile data, such as RAM contents, first [13]. After this, we attempt to freeze and suspend all running processes to prevent unintended changes. This is done after the memory capture to avoid inadvertent memory changes. Directory hashes will be generated for all parent directories prior to performing a logical backup, establishing a baseline for the device's original state.
+- To ensure data integrity, we modelled our strategy demonstrated by earlier researchers, prioritizing the capture of volatile data, such as RAM contents, first [13]. After this, we attempt to suspend and suspend all running processes to prevent unintended changes. This is done after the memory capture to avoid inadvertent memory changes. Directory hashes will be generated for all parent directories prior to performing a logical backup, establishing a baseline for the device's original state.
 
 - Once the baseline is established, the tool will extract essential artifacts, including data partition dumps, parent and its subdirectories, and user profiles from the smartwatch. For each extraction, the program generates a file or directory hash to confirm that it remains unaltered. At the end of the acquisition, log file metadata with timestamps for all executed instructions will be extracted, ensuring accountability throughout the process.
 
@@ -39,7 +39,7 @@ D.	Analysis Phase
     pip install -r requirements.txt
     ```
 
-4. Setup GENAPI key for freeze process function (OPTIONAL)
+4. Setup GENAPI key for suspend process function (OPTIONAL)
     
     https://aistudio.google.com/app/apikey
     

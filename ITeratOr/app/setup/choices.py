@@ -177,12 +177,13 @@ def run_auto_acquisition():
         loggers["acquisition"].info(
             f"\n\n{50*'='} \nStep 4: Running process analysis commands \n{50*'='}\n")
         process_analyzer.analyze_device_processes()
+        getattr(process_analyzer, "analyze_device_processes")()
 
-    # 5: Freeze Processes Step
-    if acquisition_steps.get("freeze_processes", True):
+    # 5: suspend Processes Step
+    if acquisition_steps.get("suspend_processes", True):
         loggers["acquisition"].info(
             f"\n\n{50*'='} \nStep 5: Freezing device processes \n{50*'='}\n")
-        process_analyzer.freeze_device_processes()
+        process_analyzer.suspend_device_processes()
 
     loggers["app"].info("Auto acquisition process completed.")
 
@@ -365,6 +366,7 @@ def settings():
     """Configure user settings and save them to a JSON file."""
     # Load current settings
     current_settings = load_user_settings()
+    print(current_settings)
     loggers["app"].info(f"Current settings loaded from {USER_SETTING}")
     loggers["app"].info(json.dumps(current_settings))
 

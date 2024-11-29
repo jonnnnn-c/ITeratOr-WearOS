@@ -198,34 +198,29 @@ def categorize_processes(processes, system_packages):
             )
         all_process_names = [process[3] for process in processes_to_describe]
         descriptions_list = search_descriptions(all_process_names)
-        print(descriptions_list)
         descriptions_dict = {
             item["process_name"]: item["description"] for item in descriptions_list
         }
-        print(descriptions_dict)
-        
         # Add descriptions for critical processes
-        if generate_descriptions in ("all",):
-            for i in range(len(critical_processes)):
-                pid, ppid, user, process_name, version, _ = critical_processes[i]
-                process_description = descriptions_dict.get(
-                    process_name, "No description found"
-                )
-                critical_processes[i] = (pid, ppid, user, process_name, version, process_description)
-                loggers["acquisition"].debug(
-                    f"Retrieved description for critical process: {process_name}"
-                )
+        for i in range(len(critical_processes)):
+            pid, ppid, user, process_name, version, _ = critical_processes[i]
+            process_description = descriptions_dict.get(
+                process_name, "No description found"
+            )
+            critical_processes[i] = (pid, ppid, user, process_name, version, process_description)
+            loggers["acquisition"].debug(
+                f"Retrieved description for critical process: {process_name}"
+            )
         # Add descriptions for system apps
-        if generate_descriptions in ("all",):
-            for i in range(len(system_apps)):
-                pid, ppid, user, process_name, version, _ = system_apps[i]
-                process_description = descriptions_dict.get(
-                    process_name, "No description found"
-                )
-                system_apps[i] = (pid, ppid, user, process_name, version, process_description)
-                loggers["acquisition"].debug(
-                    f"Retrieved description for system app: {process_name}"
-                )
+        for i in range(len(system_apps)):
+            pid, ppid, user, process_name, version, _ = system_apps[i]
+            process_description = descriptions_dict.get(
+                process_name, "No description found"
+            )
+            system_apps[i] = (pid, ppid, user, process_name, version, process_description)
+            loggers["acquisition"].debug(
+                f"Retrieved description for system app: {process_name}"
+            )
         # Add descriptions for unknown processes
         for i in range(len(unknown_processes)):
             pid, ppid, user, process_name, version, _ = unknown_processes[i]
@@ -400,9 +395,9 @@ def analyze_device_processes():
 
 # FREEZING STUFF
 
-def get_packages_to_freeze():
-    """Prompt the user to enter package names to freeze, or skip if left blank."""
-    packages = input("\nEnter package names to freeze (comma-separated), or leave blank to skip: ")
+def get_packages_to_suspend():
+    """Prompt the user to enter package names to suspend, or skip if left blank."""
+    packages = input("\nEnter package names to suspend (comma-separated), or leave blank to skip: ")
     if not packages.strip():
         return []
 
@@ -437,20 +432,20 @@ def log_process_status(package_name, is_running):
         loggers["acquisition"].info(f"Process '{package_name}' is not running.")
 
 
-def freeze_device_processes():
-    """Freeze the specified processes based on user input."""
+def suspend_device_processes():
+    """suspend the specified processes based on user input."""
     loggers["acquisition"].info("Starting process freezing procedure.")
     
-    # Retrieve packages to freeze from user input
-    packages_to_freeze = get_packages_to_freeze()
+    # Retrieve packages to suspend from user input
+    packages_to_suspend = get_packages_to_suspend()
 
-    if not packages_to_freeze:
+    if not packages_to_suspend:
         loggers["acquisition"].info("No packages were selected for freezing. Exiting.")
         return
     
-    loggers["acquisition"].info(f"Packages selected for freezing: {packages_to_freeze}\n")
+    loggers["acquisition"].info(f"Packages selected for freezing: {packages_to_suspend}\n")
 
-    for package_name in packages_to_freeze:
+    for package_name in packages_to_suspend:
         loggers["acquisition"].info(f"Checking status for process '{package_name}'.")
 
         # Check if the process is currently running
@@ -458,9 +453,9 @@ def freeze_device_processes():
         log_process_status(package_name, is_running)
 
         if is_running:
-            loggers["acquisition"].info(f"Attempting to freeze process '{package_name}'.")
+            loggers["acquisition"].info(f"Attempting to suspend process '{package_name}'.")
             try:
-                # Freeze the running process
+                # suspend the running process
                 run_adb_command(
                     ["adb", "shell", "am", "force-stop", package_name],
                     f"Freezing process: {package_name}"
@@ -472,11 +467,11 @@ def freeze_device_processes():
                     loggers["acquisition"].info(f"Process '{package_name}' has been successfully frozen.")
                     append_to_output_file(output_file_path, f"\nProcess '{package_name}' has been frozen.")
                 else:
-                    loggers["acquisition"].warning(f"Process '{package_name}' is still running after attempt to freeze.")
+                    loggers["acquisition"].warning(f"Process '{package_name}' is still running after attempt to suspend.")
                     append_to_output_file(output_file_path, f"\nProcess '{package_name}' is still running; freezing unsuccessful.")
 
             except Exception as e:
-                loggers["acquisition"].error(f"Failed to freeze process '{package_name}': {e}")
+                loggers["acquisition"].error(f"Failed to suspend process '{package_name}': {e}")
         else:
             loggers["acquisition"].info(f"Process '{package_name}' was not running; no action taken.")
             append_to_output_file(output_file_path, f"Process '{package_name}' was not running, no action taken.")
@@ -495,7 +490,7 @@ def available_functions():
             "get_running_processes": "Retrieve the list of running processes",
             "get_system_packages": "Retrieve the list of system packages",
             "analyze_device_processes": "Retrieve table of categorized processes",
-            "freeze_device_processes": "Freeze the specified processes based on user input"
+            "suspend_device_processes": "suspend the specified processes based on user input"
         }
         
     except Exception as e:

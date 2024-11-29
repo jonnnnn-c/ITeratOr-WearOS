@@ -9,8 +9,8 @@
     "auto_acquisition_steps": {
         "device_information": true,
         "device_isolation": true,
-        "logical_data_extraction": true,
+        "data_extraction": true,
         "process_analysis": true,
-        "freeze_processes": true
+        "suspend_processes": true
     }
 }
