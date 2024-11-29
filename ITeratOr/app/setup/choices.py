@@ -177,7 +177,6 @@ def run_auto_acquisition():
         loggers["acquisition"].info(
             f"\n\n{50*'='} \nStep 4: Running process analysis commands \n{50*'='}\n")
         process_analyzer.analyze_device_processes()
-        getattr(process_analyzer, "analyze_device_processes")()
 
     # 5: suspend Processes Step
     if acquisition_steps.get("suspend_processes", True):
