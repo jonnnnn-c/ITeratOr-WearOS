@@ -106,7 +106,6 @@ def search_descriptions(package_names, timeout=15):
     try:
         response = model.generate_content(prompt)
         descriptions_list = json.loads(response.text)
-        print(descriptions_list)
         return descriptions_list
 
     except Exception as e:
@@ -373,9 +372,6 @@ def analyze_device_processes():
             processes, system_packages
         )
 
-        # Clear the previous content and write new tables to the output file
-        open(output_file_path, "a").close()
-
         print_processes_table(
             critical_processes,
             "Critical Processes (likely legitimate)",
@@ -386,6 +382,9 @@ def analyze_device_processes():
         )
         print_processes_table(unknown_processes, "Unknown Processes", output_file_path)
 
+        # Clear the previous content and write new tables to the output file
+        open(output_file_path, "a").close()
+        
         loggers["acquisition"].info("Process analyzer completed.\n")
         
     except Exception as e:
