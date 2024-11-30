@@ -413,7 +413,7 @@ def get_process_status(package_name):
         
         # Handle None or empty output gracefully
         if output is None or output.strip() == "":
-            loggers["acquisition"].info(f"Process '{package_name}' is not running.")
+            loggers["acquisition"].info(f"** Process '{package_name}' is suspended **")
             return False
         else:
             return True

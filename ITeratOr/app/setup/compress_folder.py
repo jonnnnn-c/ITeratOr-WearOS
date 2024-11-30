@@ -35,8 +35,11 @@ def compress_folder(case_name, folder_path, output_dir, compression_type, case_n
         raise ValueError("The folder is empty and cannot be compressed.")
 
     # Replace spaces in case_name with underscores
-    case_name = case_name.replace(" ", "_")
-    
+    try:
+        case_name = case_name.replace(" ", "_")
+    except:
+        case_name = case_name
+        
     # Determine the output file name based on the case number
     base_name = f"{case_name}_{case_number}" if case_number else "output"
     files_processed = 0  # Initialize counter for processed files
