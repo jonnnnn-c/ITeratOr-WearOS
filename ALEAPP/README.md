@@ -47,11 +47,19 @@ Click 'Open Report & Close' to view the report.
 
 2. <b>Build aleapp.exe</b>
 
+    The following files below are crucial to the compilation:
+    - aleapp-file_version_info.txt
+    - aleapp.py
+    - aleapp.spec
+    - hook-plugin_loader.py
+    - plugin_loader.py
+
     Run the following command below<br/>
-    Pyinstaller will create a folder `build` that contains the required libraries and `dist` that contains the final executable.
     ```
     pyinstaller aleapp.spec
-    ```
+    ```    
+    Pyinstaller will create a folder `build` that contains the required libraries and `dist` that contains the final executable.
+
 
 ## 5. Using ITeratOr's aleapp.exe
 
