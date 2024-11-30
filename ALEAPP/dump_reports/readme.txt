@@ -1,0 +1,1 @@
+This folder is only used to hold reports for ALEAPP outputs. It is here to keep the `dump_reports` folder in the repository.
