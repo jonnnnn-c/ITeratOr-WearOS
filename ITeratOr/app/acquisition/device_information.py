@@ -306,8 +306,8 @@ def available_functions():
         loggers["acquisition"].debug(f"Created directory: {upload_dir}")
 
     return {
-        "get_device_info": "Capture device model, android version, and serial number",
-        "get_envs_info": "Capture all environment configuration",
+        "get_device_info": "Capture device model and and serial number",
+        "get_envs_info": "Capture all device environment information",
         "get_disk_partition": "Capture all disk partitions and configurations",
         "get_network_info": "Capture network interfaces, and WiFi info",
         "get_biometric_info": "Capture biometric information",
