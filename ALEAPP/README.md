@@ -71,3 +71,104 @@ This project is using ALEAPP v3.2.3, and the project can be found here:
 https://github.com/abrignoni/ALEAPP/releases/tag/v3.2.3
 
 Version of referenced Autopsy (4.21.0) uses ALEAPP v3.1.6
+
+<br/><br/>
+
+# ADDON: Analysis with aLeapp
+
+### Writing your own aleapp artifacts
+
+- <b>Our scripts</b>
+    - /ALEAPP/scripts/artifacts/habitify.py
+    - /ALEAPP/scripts/artifacts/youtubeMusic.py
+    - /ALEAPP/scripts/artifacts/zohoNotebook.py
+    - /ALEAPP/scripts/artifacts/gpsNavigation.py
+
+- <b>Template</b>
+
+    1. Declaring metadata `__artifacts_v2__`
+
+        At the start of the script, you have to define the metadata for your script. The main function will look for these metadata and collate the functions in `artifacts/`
+        ```
+        __artifacts_v2__ = {
+            "appName": {
+                "name": "app name",
+                "description": "describe what your script does",
+                "author": "@yourname",  
+                "version": "x.x.x",  
+                "date": "yyyy-mm-dd",  
+                "requirements": "none",
+                "category": "can be anything",
+                "notes": "any notes you want future users to pay attention to",
+                "paths": ('*/path/to/app/in/device/filename.filetype'),
+                "function": "actual function name"
+            }
+        }
+        ```
+
+    2. Imports
+
+        You must import `ArtifactHtmlReport`. 
+        
+        `ilapfuncs` contain many useful functions that your script might need.
+
+        ```
+        from datetime import *
+        from scripts.artifact_report import ArtifactHtmlReport
+        from scripts.ilapfuncs import logfunc, is_platform_windows, open_sqlite_db_readonly, convert_ts_int_to_utc
+        ```
+
+    3. Function
+
+        This is the function you're exporting, all 5 parameters must be there.
+
+        ```get_applicationName(files_found, report_folder, seeker, wrap_text, time_offset)```
+
+
+    4. Generate Report
+
+        These are the lines that generate the report, we have commented our scripts to help you understand better.
+        ```
+        report = ArtifactHtmlReport('Report Header')
+        report.start_artifact_report(report_folder, 'Report Name - sidebar')
+        report.add_script()
+        data_headers = ("Column A", "Column B", "Column C")
+        report.write_artifact_data_table(data_headers, data_list, file_found, html_escape=False)
+        report.end_artifact_report()
+        ```
+
+### Compiling the executable
+
+1. <b>Required libraries</b>
+
+    - The `ALEAPP` folder has a separate requirements.txt, due to version conflicts during development, under ALEAPP/requirements.txt.
+
+    - To avoid the conflicts, you must first install `requirements.txt`, and then the `pyinstaller` library. 
+
+    - The given example below is for an Anaconda environment.
+        ```
+        conda create -n aleapp pip
+        conda activate aleapp
+        pip install -r requirements.txt
+        conda install pyinstaller
+        ```
+
+2. <b>Command to compile</b>
+
+    - Run the following command below
+        ```
+        pyinstaller aleapp.spec
+        ```
+        Pyinstaller will create a folder `build` that contains the required libraries and a folder `dist` that contains the final executable.
+
+### Utilizing your artifacts in Autopsy
+
+1. <b>Locate aLeapp folder</b>
+    - In the Autopsy path eg. `Autopsy-4.21.0/autopsy/`, you will find `aLeapp` folder containing `aleapp.exe`, `LICENSE` and `Version.txt` files.
+
+2. <b>Replace the executable</b>
+    - Replace the `aleapp.exe` with the new `aleapp.exe` you have compiled in `dist`.
+
+    - Run Autopsy normally, and it now has the ability to process Habitify, Youtube Music, Zoho Notebook, GPS Navigation (WearOS) artifacts.
+
+    - A folder replica of `aLeapp` that we used can be found in this repository under ALEAPP/aLeapp.

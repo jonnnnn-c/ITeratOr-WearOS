@@ -163,6 +163,6 @@ cython_debug/
 
 # Ignore output folder
 output/
-.setup/settings.py
-.setup/user_settings.json
 .vscode/launch.json
+ITeratOr/app/setup/settings.py
+ITeratOr/app/setup/user_settings.json
