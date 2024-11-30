@@ -39,7 +39,7 @@ Smartwatches have grown in popularity because of fitness trends and technologica
 
 **ITeratOr** aim is to provide a secure and efficient wireless digital forensics process, while also expanding on current analysis capabilities for deeper insights.
 
-<img src="images/solution.png" alt="Logo" width="80%">
+<img src="images/solution.png" alt="Solution" width="80%">
 
 Our project consists of three phases: pre-acquisition, acquisition, and analysis. ITeratOr, our tool, manages the pre-acquisition and acquisition stages, while the analysis phase aims to enhance existing ALEAPP technology (https://github.com/abrignoni/ALEAPP).
 
