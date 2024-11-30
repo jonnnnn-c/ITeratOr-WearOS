@@ -1,6 +1,6 @@
 import argparse
 import threading
-from app.setup.setup_environment import setup_required_tools, enable_adb_root
+from app.setup.setup_environment import setup_required_tools, enable_adb_root, display_ascii_logo
 from app.logs.logger_config import (
     initialize_loggers,
     clear_output_folder,
@@ -173,8 +173,8 @@ def print_boxed_menu(options):
 
 
 def main():
-    global emulated, network_interface  # Include the new variable
-
+    display_ascii_logo()
+    
     # Parse command-line options
     option = parser_options()
     # Clear log files if the option is set

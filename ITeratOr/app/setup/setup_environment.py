@@ -88,3 +88,24 @@ def enable_adb_root():
     else:
         loggers["env_setup"].error("'adb root' command failed.")
         return False  # Return False if the command failed
+
+
+def display_ascii_logo():
+    """Display an ASCII art logo."""
+    logo = """
+██╗████████╗███████╗██████╗  █████╗ ████████╗ ██████╗ ██████╗ 
+██║╚══██╔══╝██╔════╝██╔══██╗██╔══██╗╚══██╔══╝██╔═══██╗██╔══██╗
+██║   ██║   █████╗  ██████╔╝███████║   ██║   ██║   ██║██████╔╝
+██║   ██║   ██╔══╝  ██╔══██╗██╔══██║   ██║   ██║   ██║██╔══██╗
+██║   ██║   ███████╗██║  ██║██║  ██║   ██║   ╚██████╔╝██║  ██║
+╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝
+    """
+    border = "+" + "-" * 60 + "+"
+    description = " A Gateway to Secure WearOS Forensics "
+    
+    # Print the bordered logo
+    print(border)
+    print("|" + description.center(60) + "|")
+    print(border)
+    print(logo)
+    print(border)
