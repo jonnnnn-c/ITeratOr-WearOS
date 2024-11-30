@@ -54,7 +54,7 @@ Our project consists of three phases: pre-acquisition, acquisition, and analysis
 # 🚦 Getting Started
 The repository is divided into two sections: **ITeratOr** and **ALEAPP**. To learn how to run each, refer to the respective `README.md` files located in their corresponding folders. 
 - [**ITeratOr**](/ITeratOr/README.md): Contains code for the pre-acquisition and acquisition phases
-- [**ALEAPP**](/ALEAPP/README%20copy.md): Contains code for the analysis phase
+- [**ALEAPP**](/ALEAPP/README.md): Contains code for the analysis phase
 
 ```
 cd ITeratOr # or
