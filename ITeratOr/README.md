@@ -18,12 +18,12 @@ Before starting the acquisition, ensure you have the following devices and setup
 
 ## Table of Contents
 
-1. [Getting Started](#getting-started)
+1. [Getting Started (Linux Machine)](#getting-started-linux-machine)
 2. [Setting Up the Android Environment](#setting-up-android-environment)
-3. [Wireless Debugging Setup](#wireless-debugging-setup)
-4. [Faking Package / Process](#faking-package-process)
-5. [When Developing](#when-developing)
-6. [Log Files](#log-files)
+3. [Wireless Debugging Setup](#setup-wireless-debugging-on-physical--emulated)
+4. [Faking Package / Process](#faking-package--process)
+5. [Log Files](#log-files)
+6. [Screenshots](#screenshots)
 
 <br/>
 
