@@ -53,7 +53,7 @@ def get_zohoNotebook(files_found, report_folder, seeker, wrap_text, time_offset)
             ZTodo.remoteId,
             ZTodo.updatedTime
             from Note left join ZTodo 
-            on Note.noteId=ZTodo.noteId 
+            on Note.id=ZTodo.noteId 
             ''')
             all_rows = cursor.fetchall()
             # fetchall returns a tuple, to further process the data we have to iterate through the data
