@@ -153,6 +153,15 @@ def physical_acquisition():
             loggers["acquisition"].debug(f"Created directory for partition images: {physical_upload_dir}")
 
         # Fetch partition list
+        mount = run_adb_command(
+            ["adb", "shell", "mount"],
+            "Retrieving: partition list"
+        )
+
+        loggers["acquisition"].info("Mount locations:")
+        loggers["acquisition"].info(f"\n{mount}")
+        
+        # Fetch partition list
         result = run_adb_command(
             ["adb", "shell", "cat", "/proc/partitions"],
             "Retrieving: partition list"
