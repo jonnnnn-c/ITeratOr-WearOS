@@ -7,10 +7,12 @@ import subprocess
 log_folder = "output"
 
 # Log files (add more names if needed)
-# app.log: General app activity (e.g., menu selections, user actions).
-# env_setup.log: Environment setup details (e.g., ADB present).
-# network.log: Device connection-related events (e.g., connect, disconnect, network security check).
-# acquisition.log: Actions during acquisition (e.g., memory dumps, process freezing, file extraction).
+# app.log	Tracks general application activity, such as user menu selections and tool interactions.
+# env_setup.log	Records the setup process, verifying that necessary environments like ADB are properly configured.
+# network.log	Logs connectivity-related events, including device connections, disconnections, and network security checks.
+# acquisition.log	Captures key actions during information gathering, data acquisition, process suspensions, and related activities.
+# compress.log	Details the outcomes of compression actions, including errors and successful operations.
+
 log_files = {
     "app.log",
     "env_setup.log",
